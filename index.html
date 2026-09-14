@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="La Tiendita">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v07.html (GitHub Pages) — espera Motor API v7. Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v08.html (GitHub Pages) — espera Motor API v8. Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--brand:#0f766e;--brand2:#14b8a6;--danger:#dc2626;--ok:#16a34a;--warn:#d97706;--r:14px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -197,7 +197,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 7;
+const EXPECTED_API = 8;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -365,7 +365,7 @@ function renderChips() {
 function setCat(c) { S.cat = c; renderChips(); renderGrid(); }
 function setTier(t) { S.tier = t; renderChips(); renderGrid(); }
 function emojiCat(c) { c = String(c || '').toLowerCase(); return /dulce|chupete|caramelo/.test(c) ? '🍬' : /bebida|jugo|agua|gaseosa/.test(c) ? '🥤' : /galleta/.test(c) ? '🍪' : /snack|papas/.test(c) ? '🍿' : /l[aá]cteo|yogur|leche/.test(c) ? '🥛' : /fruta/.test(c) ? '🍎' : /aseo|limpieza/.test(c) ? '🧼' : '🛍️'; }
-function tierLabel(k) { const t = S.tiers.find(x => x.key === k); return t ? t.label : k; }
+function tierLabel(k) { k = String(k); if (k === '1' || k === '1.0') k = '1$'; const t = S.tiers.find(x => x.key === k); return t ? t.label : k; }
 function renderGrid() {
   const list = S.catalogo.filter(p => (S.cat === 'Todas' || p.categoria === S.cat) && (S.tier === 'Todos' || p.tier === S.tier) &&
     (!S.q || p.nombre.toLowerCase().includes(S.q) || p.sku.toLowerCase().includes(S.q)))
@@ -785,7 +785,7 @@ async function aCatalogo() {
   try {
     const r = await call('apiAdminCatalogo'); S.admin.prods = r.productos; S.categorias = r.categorias; S.tiers = r.tiers;
     $('a-catalogo').innerHTML = `<div class="row"><input id="cq" placeholder="Buscar SKU / producto…" oninput="renderProds()"><button style="flex:0 0 auto" onclick="editProd()">＋ Producto</button></div>
-      <div class="row" style="margin-top:8px"><button class="small sec" onclick="editCats()">🏷️ Categorías</button><span class="small muted">${r.productos.length} productos · ${r.productos.filter(p => p.activo).length} activos</span></div>
+      <div class="row wrap" style="margin-top:8px"><button class="small sec" onclick="editCats()">🏷️ Categorías</button><button class="small sec" onclick="fotosFaltantes()">📷 Buscar fotos faltantes (${r.productos.filter(p => p.activo && !p.imagen_url).length})</button><span class="small muted">${r.productos.length} productos · ${r.productos.filter(p => p.activo).length} activos</span></div>
       <div class="tbl" style="margin-top:10px"><table><thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th class="right">Stock</th><th></th></tr></thead><tbody id="cbody"></tbody></table></div>`;
     renderProds();
   } catch (e) {}
@@ -829,6 +829,7 @@ async function buscarFoto(sku) {
     const r = await call('apiAdminBuscarImagen', p.nombre);
     modal(`<h3>🔎 Fotos para "${esc(p.nombre)}"</h3><p class="small muted">Búsqueda: "${esc(r.query)}"${r.googleConfigurado ? '' : ' · solo Open Food Facts (configura GOOGLE_CSE_KEY/CX en Config para buscar también en Google)'}. Toca una para usarla.</p>
       ${r.candidatos.length ? `<div class="cands">${r.candidatos.map((c, i) => `<div class="c" onclick="elegirFoto('${esc(sku)}','${esc(c.url)}')"><img src="${esc(c.thumb || c.url)}" alt="" loading="lazy"><div class="small muted" style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(c.titulo || c.fuente)}</div></div>`).join('')}</div>` : '<div class="empty">Sin resultados. Sube una foto propia.</div>'}
+      <div class="small muted" style="margin-top:8px">${(r.detalle || []).map(esc).join(' · ')}</div>
       <div class="row" style="margin-top:12px"><button class="sec" onclick="editProd('${esc(sku)}')">← Volver</button></div>`);
   } catch (e) {}
 }
@@ -841,6 +842,14 @@ async function subirFoto(sku, input) {
 }
 async function quitarFoto(sku) {
   try { await call('apiAdminQuitarImagen', sku); const p = S.admin.prods.find(x => x.sku === sku); p.imagen_url = ''; editProd(sku); } catch (e) {}
+}
+async function fotosFaltantes() {
+  try {
+    const skus = await call('apiAdminSinFoto');
+    if (!skus.length) return toast('Todos los productos activos ya tienen foto', 'ok');
+    if (!confirm('Buscar foto en internet para ' + skus.length + ' productos sin foto? (Con Google configurado en Config gasta ' + skus.length + ' búsquedas de las 100 diarias gratis.)')) return;
+    await autoFotos(skus); aCatalogo(); S.catalogo = await gs('apiCatalogo'); renderGrid();
+  } catch (e) {}
 }
 // Busca foto automáticamente para una lista de SKUs (uno por uno, con progreso)
 async function autoFotos(skus) {
