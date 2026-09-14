@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="La Tiendita">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v08.html (GitHub Pages) — espera Motor API v8. Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v11.html (GitHub Pages) — espera Motor API v10 (solo cambios de frontend: cámara en catálogo). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--brand:#0f766e;--brand2:#14b8a6;--danger:#dc2626;--ok:#16a34a;--warn:#d97706;--r:14px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -144,7 +144,7 @@ a{color:var(--brand)}
       <label>Monto ($)</label>
       <input id="recMonto" type="number" inputmode="decimal" step="0.25" min="1" placeholder="Ej: 5.00">
       <div class="chips" style="margin-top:6px"><button class="chip" onclick="setMonto(2)">$2</button><button class="chip" onclick="setMonto(5)">$5</button><button class="chip" onclick="setMonto(10)">$10</button><button class="chip" onclick="setMonto(20)">$20</button></div>
-      <label>Comprobante de pago (foto o PDF)</label>
+      <label>Comprobante de pago (foto o PDF) — <span style="color:var(--danger)">obligatorio</span></label>
       <div class="file" onclick="document.getElementById('recFile').click()">
         <div id="recFileTxt">📷 Toca para tomar foto o elegir archivo</div>
         <input id="recFile" type="file" accept="image/*,application/pdf" onchange="previewFile(this,'recPrev','recFileTxt')">
@@ -154,7 +154,7 @@ a{color:var(--brand)}
       <input id="recFecha" type="datetime-local">
       <label>Nota (opcional)</label>
       <input id="recNota" placeholder="Ej: transferencia Banco Pichincha 14/09">
-      <div style="margin-top:14px"><button style="width:100%" onclick="enviarRecarga()">Enviar solicitud de recarga</button></div>
+      <div style="margin-top:14px"><button id="recBtn" style="width:100%" onclick="enviarRecarga()" disabled>Adjunta el comprobante para continuar</button></div>
     </div>
     <div class="card"><h3>Mis solicitudes</h3><div id="recLista"></div></div>
   </section>
@@ -165,6 +165,7 @@ a{color:var(--brand)}
       <button data-a="resumen" class="on">📊 Resumen</button>
       <button data-a="recargas">💵 Recargas</button>
       <button data-a="banco">🏦 Banco</button>
+      <button data-a="restock">📦 Restock</button>
       <button data-a="usuarios">👥 Usuarios</button>
       <button data-a="catalogo">📦 Catálogo</button>
       <button data-a="factura">📄 Factura</button>
@@ -173,6 +174,7 @@ a{color:var(--brand)}
     <div id="a-resumen"></div>
     <div id="a-recargas" class="hide"></div>
     <div id="a-banco" class="hide"></div>
+    <div id="a-restock" class="hide"></div>
     <div id="a-usuarios" class="hide"></div>
     <div id="a-catalogo" class="hide"></div>
     <div id="a-factura" class="hide"></div>
@@ -197,7 +199,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 8;
+const EXPECTED_API = 10;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -461,6 +463,7 @@ async function previewFile(input, imgId, txtId) {
     const data = await fileToPayload(f);
     input._payload = data;
     $(txtId).textContent = '✅ ' + f.name + ' (' + Math.round(data.data.length * 0.75 / 1024) + ' KB)';
+    if (input.id === 'recFile' && $('recBtn')) { $('recBtn').disabled = false; $('recBtn').textContent = 'Enviar recarga'; }
     if (imgId && data.mime.startsWith('image/')) { $(imgId).src = 'data:' + data.mime + ';base64,' + data.data; $(imgId).classList.remove('hide'); }
     else if (imgId) $(imgId).classList.add('hide');
   } catch (e) { $(txtId).textContent = '❌ ' + e.message; }
@@ -492,13 +495,23 @@ async function enviarRecarga() {
   if (!payload) return toast('Adjunta el comprobante de pago', 'err');
   try {
     const fechaPago = $('recFecha').value ? new Date($('recFecha').value).toISOString() : '';
-    const r = await call('apiSolicitarRecarga', monto, payload, $('recNota').value, fechaPago);
-    if (r.estado === 'preaprobada') { setSaldo(r.saldo); toast('✅ Recarga acreditada: ' + money(monto) + '. Ya puedes comprar.', 'ok'); }
-    else toast('✅ Solicitud enviada. Se acreditará al aprobarse.', 'ok');
+    loading(true, 'Leyendo el comprobante y registrando la recarga… (10-30 s)');
+    const r = await gs('apiSolicitarRecarga', monto, payload, $('recNota').value, fechaPago);
+    loading(false);
+    if (r.estado === 'preaprobada') setSaldo(r.saldo);
+    const c = r.comprobante || {};
+    modal(`<h3>${r.estado === 'preaprobada' ? '✅ Recarga acreditada' : '✅ Solicitud enviada'}</h3>
+      <div class="total"><span>Monto</span><span>${money(monto)}</span></div>
+      ${c.estado_ocr === 'ok' ? `<div class="small"><b>Datos leídos del comprobante:</b><br>${c.banco ? 'Banco: ' + esc(c.banco) + '<br>' : ''}${c.numero ? 'No. comprobante: ' + esc(c.numero) + '<br>' : ''}${c.fecha ? 'Fecha/hora: ' + esc(c.fecha) + '<br>' : ''}${c.monto ? 'Valor: ' + money(c.monto) + '<br>' : ''}${c.ordenante ? 'Ordenante: ' + esc(c.ordenante) : ''}</div>`
+        : '<div class="small muted">No se pudieron leer los datos del comprobante automáticamente; el administrador lo revisará con la imagen.</div>'}
+      ${(c.alertas || []).length ? `<div class="small" style="color:var(--warn);margin-top:8px">⚠ ${c.alertas.map(esc).join('<br>⚠ ')}</div>` : ''}
+      <p class="small muted" style="margin-top:10px">${r.estado === 'preaprobada' ? 'Ya puedes comprar. La recarga se confirmará cuando el administrador la cruce con el banco.' : 'Se acreditará cuando el administrador la apruebe.'}</p>
+      <div style="margin-top:12px"><button style="width:100%" onclick="closeModal();showView('tienda')">Ir a la tienda</button></div>`);
     $('recMonto').value = ''; $('recNota').value = ''; $('recFile').value = ''; $('recFile')._payload = null; setRecFechaNow();
     $('recFileTxt').textContent = '📷 Toca para tomar foto o elegir archivo'; $('recPrev').classList.add('hide');
+    $('recBtn').disabled = true; $('recBtn').textContent = 'Adjunta el comprobante para continuar';
     loadMisRecargas();
-  } catch (e) {}
+  } catch (e) { loading(false); toast(e.message, 'err'); }
 }
 async function loadMisRecargas() {
   try {
@@ -513,8 +526,8 @@ $('asubs').querySelectorAll('button').forEach(b => b.onclick = () => adminShow(b
 function adminShow(sub) {
   S.admin.sub = sub;
   $('asubs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.a === sub));
-  ['resumen', 'recargas', 'banco', 'usuarios', 'catalogo', 'factura', 'reportes'].forEach(x => $('a-' + x).classList.toggle('hide', x !== sub));
-  ({ resumen: aResumen, recargas: aRecargas, banco: aBanco, usuarios: aUsuarios, catalogo: aCatalogo, factura: aFactura, reportes: aReportes })[sub]();
+  ['resumen', 'recargas', 'banco', 'restock', 'usuarios', 'catalogo', 'factura', 'reportes'].forEach(x => $('a-' + x).classList.toggle('hide', x !== sub));
+  ({ resumen: aResumen, recargas: aRecargas, banco: aBanco, restock: aRestock, usuarios: aUsuarios, catalogo: aCatalogo, factura: aFactura, reportes: aReportes })[sub]();
 }
 
 async function aResumen() {
@@ -528,7 +541,9 @@ async function aResumen() {
       <div class="kpi"><div class="v">${r.usuarios}</div><div class="l">Usuarios</div></div>
       <div class="kpi"><div class="v">${money(r.saldoTotalUsuarios)}</div><div class="l">Saldo total en cuentas</div></div>
       <div class="kpi"><div class="v">${r.productosActivos}</div><div class="l">Productos activos</div></div>
-      <div class="kpi"><div class="v" style="color:${r.stockBajo.length ? 'var(--warn)' : 'var(--brand)'}">${r.stockBajo.length}</div><div class="l">Stock bajo</div></div></div>
+      <div class="kpi"><div class="v" style="color:${r.stockBajo.length ? 'var(--warn)' : 'var(--brand)'}">${r.stockBajo.length}</div><div class="l">Bajo mínimo (recompra)</div></div>
+      <div class="kpi"><div class="v" style="color:${r.perchaPorLlenar ? 'var(--warn)' : 'var(--brand)'}">${r.perchaPorLlenar || 0}</div><div class="l">Percha por rellenar</div></div></div>
+      ${(r.perchaPorLlenar || r.stockBajo.length) ? `<div style="margin-top:12px"><button onclick="adminShow('restock')">📦 Ver restock →</button></div>` : ''}
       ${r.stockBajo.length ? `<div class="card" style="margin-top:12px"><h3>⚠️ Stock bajo</h3>${r.stockBajo.map(p => `<div class="mov"><span>${esc(p.nombre)} <span class="small muted">${esc(p.sku)}</span></span><span class="m">${p.stock}</span></div>`).join('')}</div>` : ''}
       ${r.recargasSinCruce ? `<div style="margin-top:12px" class="row"><button class="sec" onclick="adminShow('recargas')">Ver recargas →</button><button onclick="adminShow('banco')">🏦 Cruzar con el banco →</button></div>` : ''}
       <div class="card" style="margin-top:12px"><h3>📲 Invitar usuarios</h3>
@@ -576,7 +591,8 @@ async function aRecargas(estado) {
       <p class="small muted" style="margin:0 0 8px">Las recargas se acreditan al instante (preaprobadas). Aquí las cruzas una por una, o en 🏦 Banco subes el estado de cuenta y se cruzan solas.</p>
       ${list.length ? list.map(r => `<div class="card">
         <div class="row"><div><div class="b">${esc(r.email)}</div><div class="small muted">${esc(r.fecha)} · ${esc(r.id)}</div></div><div class="right" style="font-size:20px;font-weight:800">${money(r.monto)}</div></div>
-        <div class="small" style="margin:6px 0">🕒 pago: ${esc(r.fecha_pago || r.fecha)}${r.nota_usuario ? ' · 📝 ' + esc(r.nota_usuario) : ''} · <a href="${esc(r.comprobante_url)}" target="_blank">📎 Ver comprobante</a> <span class="badge ${esc(r.estado)}">${esc(estadoTxt(r.estado))}</span></div>
+        <div class="small" style="margin:6px 0">🕒 pago: ${esc(r.fecha_pago || r.fecha)}${r.banco ? ' · 🏦 ' + esc(r.banco) : ''}${r.numero_comprobante ? ' · No. <b>' + esc(r.numero_comprobante) + '</b>' : ''}${r.nota_usuario ? ' · 📝 ' + esc(r.nota_usuario) : ''} · <a href="${esc(r.comprobante_url)}" target="_blank">📎 Ver comprobante</a> <span class="badge ${esc(r.estado)}">${esc(estadoTxt(r.estado))}</span></div>
+        ${r.alerta ? `<div class="small" style="color:var(--warn);margin:4px 0">⚠ ${esc(r.alerta)}</div>` : ''}
         ${r.estado === 'pendiente' ? `<input id="nota_${esc(r.id)}" placeholder="Nota admin (opcional)" style="margin:6px 0">
           <div class="row"><button class="danger" onclick="resolver('${esc(r.id)}','rechazar')">Rechazar</button><button onclick="resolver('${esc(r.id)}','aprobar')">✅ Aprobar ${money(r.monto)}</button></div>`
         : (r.estado === 'preaprobada' || r.estado === 'aprobada') ? `<input id="nota_${esc(r.id)}" placeholder="Nota admin (opcional)" style="margin:6px 0">
@@ -603,10 +619,23 @@ async function aBanco() {
     <div class="row" style="margin-top:10px"><button class="sec" onclick="pegarBanco()">Pegar filas</button></div>
     <div id="bkPreview"></div></div>
     <div id="bkResult"></div>
+    <div class="card"><h3>🧾 Comprobantes registrados</h3><p class="small muted" style="margin-top:0">Datos leídos de cada comprobante subido (pestaña <b>Comprobantes</b> de la hoja). El cruce automático usa primero el <b>No. de comprobante</b> contra la descripción del banco y luego monto + hora.</p>
+      <div class="row"><button class="small sec" onclick="verComprobantes(false)">Ver todos</button><button class="small sec" onclick="verComprobantes(true)">Solo con alertas</button></div><div id="bkComps"></div></div>
     <div class="card"><h3>Movimientos del banco sin match (${sin.length})</h3>
       ${sin.length ? sin.map(b => `<div class="card" style="padding:10px"><div><div class="b">${money(b.monto)} · ${esc(b.fecha)}</div><div class="small muted">${esc(b.descripcion)} ${b.referencia ? '· ref ' + esc(b.referencia) : ''}</div></div>
         <div class="row" style="margin-top:8px"><button class="small sec" onclick="vincularBanco('${esc(b.banco_id)}',${b.monto})">🔗 Vincular a una recarga</button><button class="small sec" onclick="descartarBanco('${esc(b.banco_id)}')">Descartar (no es recarga)</button></div></div>`).join('')
       : '<div class="empty">Todo cruzado. 👌</div>'}</div>`;
+}
+async function verComprobantes(soloAlertas) {
+  try {
+    const list = await call('apiAdminComprobantes', !!soloAlertas);
+    $('bkComps').innerHTML = list.length ? `<div class="tbl" style="margin-top:8px"><table><thead><tr><th>Fecha carga</th><th>Usuario</th><th>Banco / No.</th><th class="right">Declarado</th><th class="right">Leído</th><th>Pago (OCR)</th><th></th></tr></thead><tbody>
+      ${list.map(c => `<tr style="${c.alerta ? 'background:#fffbeb' : ''}"><td class="small">${esc(c.fecha_carga)}<div class="muted">${esc(c.recarga_id)}</div></td><td>${esc(c.usuario || c.email)}<div class="small muted">${esc(c.ordenante || '')}</div></td>
+        <td class="small">${esc(c.banco || '—')}<div class="b">${esc(c.numero_comprobante || '—')}</div></td><td class="right b">${money(c.monto_declarado)}</td>
+        <td class="right" style="color:${c.monto_ocr === null ? 'var(--muted)' : Math.abs(c.monto_ocr - c.monto_declarado) < 0.011 ? 'var(--ok)' : 'var(--danger)'}">${c.monto_ocr === null ? '—' : money(c.monto_ocr)}</td>
+        <td class="small">${esc(c.fecha_pago_ocr || '—')}${c.alerta ? '<div style="color:var(--warn)">⚠ ' + esc(c.alerta) + '</div>' : ''}</td>
+        <td class="small"><a href="${esc(c.archivo_url)}" target="_blank">📎</a>${c.ocr_doc_url ? ` <a href="${esc(c.ocr_doc_url)}" target="_blank">texto</a>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Sin comprobantes.</div>';
+  } catch (e) {}
 }
 let bkRows = null; // filas crudas (array de arrays)
 function leerBanco(input) {
@@ -721,6 +750,52 @@ async function vincularBanco(bancoId, monto) {
 async function doVincular(bancoId) { try { await call('apiAdminVincularBanco', bancoId, $('vkRec').value); closeModal(); toast('Vinculado y cruzado', 'ok'); aBanco(); } catch (e) {} }
 async function descartarBanco(id) { if (!confirm('¿Descartar este movimiento? No se volverá a mostrar.')) return; try { await call('apiAdminDescartarBanco', id); aBanco(); } catch (e) {} }
 
+/* --- Restock: interno (bodega → percha) y externo (recompra) --- */
+async function aRestock() {
+  try {
+    const r = await call('apiAdminRestock'); S.admin.restock = r;
+    const c = r.config;
+    $('a-restock').innerHTML = `<p class="small muted" style="margin:0 0 10px">Regla: <b>${Math.round(c.fraccion_percha * 100)}%</b> del stock en percha y el resto en bodega (Config → FRACCION_PERCHA). El consumo semanal se calcula con las ventas de las últimas <b>${c.semanas_historial}</b> semanas; la recompra busca cubrir <b>${c.semanas_cobertura}</b> semanas (Config → SEMANAS_COBERTURA). El objetivo de percha y el mínimo se ajustan por producto en Catálogo → ✏️.</p>
+      <div class="card"><h3>🔄 Restock interno — sacar de bodega a percha</h3>
+        ${r.interno.length ? `<div class="tbl"><table><thead><tr><th>✓</th><th>Producto</th><th class="right">Percha</th><th class="right">Objetivo</th><th class="right">Bodega</th><th class="right">Sacar</th></tr></thead><tbody>
+          ${r.interno.map((it, i) => `<tr><td><input type="checkbox" class="rsChk" data-i="${i}" ${it.mover > 0 ? 'checked' : 'disabled'} style="width:auto"></td>
+            <td><div class="b">${esc(it.nombre)}</div><div class="small muted">${esc(it.sku)} · vende ${it.consumo_semanal}/sem${it.sin_bodega ? ' · <span style="color:var(--danger)">bodega vacía</span>' : ''}</div></td>
+            <td class="right" style="color:var(--warn);font-weight:700">${it.percha}</td><td class="right">${it.objetivo}</td><td class="right">${it.bodega}</td>
+            <td class="right"><input type="number" min="0" max="${it.bodega}" value="${it.mover}" id="rsMov_${i}" style="width:70px;padding:6px 8px"></td></tr>`).join('')}</tbody></table></div>
+          <div class="row" style="margin-top:10px"><button class="sec" onclick="imprimirLista('interno')">🖨️ Lista para bodega</button><button onclick="aplicarRestock()">✅ Aplicar traslados marcados</button></div>`
+        : '<div class="empty">La percha está completa en todos los productos. 👌</div>'}</div>
+      <div class="card"><h3>🛒 Restock externo — recompra</h3>
+        ${r.externo.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="right">Stock</th><th class="right">Mín.</th><th class="right">Vende/sem</th><th class="right">Cobertura</th><th class="right">Comprar</th></tr></thead><tbody>
+          ${r.externo.map(it => `<tr><td><div class="b">${esc(it.nombre)}</div><div class="small muted">${esc(it.sku)} · ${esc(it.motivo)}</div></td>
+            <td class="right b" style="color:${it.bajo_minimo ? 'var(--danger)' : 'inherit'}">${it.stock}</td><td class="right">${it.minimo}</td><td class="right">${it.consumo_semanal}</td>
+            <td class="right">${it.semanas_cobertura === null ? '—' : it.semanas_cobertura + ' sem'}</td>
+            <td class="right"><b>${it.empaques_sugeridos}</b> emp.<div class="small muted">= ${it.empaques_sugeridos * it.unid_por_empaque} u. · ${money(it.costo_estimado)}</div></td></tr>`).join('')}</tbody></table></div>
+          <div class="row" style="margin-top:10px"><span class="b">Costo estimado de la recompra: ${money(r.costoRecompra)}</span><button class="sec" onclick="imprimirLista('externo')">🖨️ Lista de compras</button></div>`
+        : '<div class="empty">Nada por recomprar por ahora.</div>'}</div>
+      <div class="card"><h3>Estado por producto</h3><div class="tbl"><table><thead><tr><th>Producto</th><th class="right">Percha</th><th class="right">Bodega</th><th class="right">Total</th><th class="right">Vende/sem</th><th class="right">Cobertura</th></tr></thead><tbody>
+        ${r.todos.map(it => `<tr><td>${esc(it.nombre)}<div class="small muted">${esc(it.sku)}</div></td><td class="right">${it.percha}<span class="small muted">/${it.objetivo}</span></td><td class="right">${it.bodega}</td><td class="right b">${it.stock}</td><td class="right">${it.consumo_semanal}</td><td class="right">${it.semanas_cobertura === null ? '—' : it.semanas_cobertura + ' sem'}</td></tr>`).join('')}</tbody></table></div></div>`;
+  } catch (e) {}
+}
+async function aplicarRestock() {
+  const r = S.admin.restock; const items = [];
+  document.querySelectorAll('.rsChk:checked').forEach(ch => { const i = +ch.dataset.i; const u = +$('rsMov_' + i).value; if (u > 0) items.push({ sku: r.interno[i].sku, unidades: u }); });
+  if (!items.length) return toast('No hay traslados marcados', 'err');
+  if (!confirm('¿Registrar ' + items.length + ' traslados de bodega a percha? Hazlo cuando ya moviste físicamente los productos.')) return;
+  try { const x = await call('apiAdminAplicarTraslados', items, 'restock interno'); toast('✅ ' + x.traslados + ' traslados registrados', 'ok'); aRestock(); } catch (e) {}
+}
+function imprimirLista(tipo) {
+  const r = S.admin.restock; const hoy = new Date().toLocaleDateString();
+  const filas = tipo === 'interno'
+    ? r.interno.filter(it => it.mover > 0).map(it => `<tr><td>${esc(it.nombre)}</td><td>${esc(it.sku)}</td><td style="text-align:right"><b>${it.mover}</b> u.</td><td></td></tr>`).join('')
+    : r.externo.filter(it => it.empaques_sugeridos > 0).map(it => `<tr><td>${esc(it.nombre)}</td><td>${esc(it.sku)}</td><td style="text-align:right"><b>${it.empaques_sugeridos}</b> emp. (${it.empaques_sugeridos * it.unid_por_empaque} u.)</td><td style="text-align:right">${money(it.costo_estimado)}</td></tr>`).join('');
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>${tipo === 'interno' ? 'Restock interno' : 'Lista de compras'} ${hoy}</title><style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #ddd;padding:6px;text-align:left;font-size:14px}</style></head><body>
+    <h2>${tipo === 'interno' ? '🔄 Sacar de bodega a percha' : '🛒 Lista de recompra'} — ${hoy}</h2>
+    <table><thead><tr><th>Producto</th><th>SKU</th><th style="text-align:right">${tipo === 'interno' ? 'Sacar' : 'Comprar'}</th><th style="text-align:right">${tipo === 'interno' ? '✓' : 'Costo est.'}</th></tr></thead><tbody>${filas}</tbody></table>
+    <script>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+
 /* --- Usuarios --- */
 async function aUsuarios() {
   try {
@@ -796,8 +871,8 @@ function renderProds() {
     <td class="small b">${p.imagen_url ? `<img class="thumb-sm" src="${esc(p.imagen_url)}" alt="">` : `<div class="thumb-sm" style="display:flex;align-items:center;justify-content:center">${emojiCat(p.categoria)}</div>`}<div>${esc(p.sku)}</div></td>
     <td><div class="b">${esc(p.nombre)}</div><div class="small muted">${esc(p.categoria)} · ${p.unid_por_empaque} u/empaque · costo u ${money(p.costo_unit)}${p.codigo_proveedor ? ' · prov ' + esc(p.codigo_proveedor) : ''}</div></td>
     <td>${esc(tierLabel(p.tier))}</td>
-    <td class="right b" style="color:${p.stock <= 5 ? 'var(--warn)' : 'inherit'}">${p.stock}</td>
-    <td class="right" style="white-space:nowrap"><button class="small sec" onclick="editProd('${esc(p.sku)}')">✏️</button> <button class="small sec" onclick="ingresoStock('${esc(p.sku)}')">＋Stock</button></td></tr>`).join('');
+    <td class="right b" style="color:${p.stock <= (p.stock_minimo !== null && p.stock_minimo !== undefined ? p.stock_minimo : 5) ? 'var(--warn)' : 'inherit'}">${p.stock}<div class="small muted" style="font-weight:400">P ${p.stock_percha} · B ${p.stock_bodega}</div></td>
+    <td class="right" style="white-space:nowrap"><button class="small sec" title="Tomar foto" onclick="fotoRapida('${esc(p.sku)}')">📸</button> <button class="small sec" onclick="editProd('${esc(p.sku)}')">✏️</button> <button class="small sec" onclick="ingresoStock('${esc(p.sku)}')">＋Stock</button></td></tr>`).join('');
 }
 function selCats(id, val) { return `<select id="${id}">${S.categorias.map(c => `<option ${c === val ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`; }
 function selTiers(id, val) { return `<select id="${id}">${S.tiers.map(t => `<option value="${esc(t.key)}" ${t.key === val ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select>`; }
@@ -808,18 +883,24 @@ function editProd(sku) {
     <label>Nombre</label><input id="peNom" value="${esc(p.nombre)}">
     <div class="row"><div><label>Categoría</label>${selCats('peCat', p.categoria)}</div><div><label>Rango de precio</label>${selTiers('peTier', p.tier)}</div></div>
     <div class="row"><div><label>Unidades por empaque</label><input id="peUE" type="number" min="1" value="${p.unid_por_empaque}"></div><div><label>Costo del empaque ($)</label><input id="peCE" type="number" step="0.01" value="${p.costo_empaque}"></div></div>
-    ${sku ? `<label>Stock actual (unidades) — corrige solo si hiciste conteo</label><input id="peStock" type="number" value="${p.stock}">`
+    ${sku ? `<div class="row"><div><label>Stock en percha (conteo)</label><input id="pePer" type="number" min="0" value="${p.stock_percha}"></div><div><label>Stock en bodega (conteo)</label><input id="peBod" type="number" min="0" value="${p.stock_bodega}"></div></div>
+             <div class="small muted">Total actual ${p.stock}. Cambia estos solo si hiciste conteo físico.</div>`
           : `<label>Empaques comprados (stock inicial = empaques × unidades)</label><input id="peEmp" type="number" min="0" value="0">`}
+    <div class="row"><div><label>Objetivo en percha (u.)</label><input id="peObj" type="number" min="0" placeholder="auto = ¼ del stock" value="${p.percha_objetivo === null || p.percha_objetivo === undefined ? '' : p.percha_objetivo}"></div>
+      <div><label>Stock mínimo antes de recomprar (u.)</label><input id="peMin" type="number" min="0" placeholder="por defecto ${5}" value="${p.stock_minimo === null || p.stock_minimo === undefined ? '' : p.stock_minimo}"></div></div>
     <label>Código del proveedor (de la factura)</label><input id="peCP" value="${esc(p.codigo_proveedor || '')}">
     <label>Estado</label><select id="peAct"><option value="1" ${p.activo ? 'selected' : ''}>activo (visible en la tienda)</option><option value="0" ${!p.activo ? 'selected' : ''}>inactivo</option></select>
     ${sku ? `<label>Foto</label><div class="row"><div style="flex:0 0 90px">${p.imagen_url ? `<img id="peImg" src="${esc(p.imagen_url)}" style="width:90px;height:90px;object-fit:contain;border-radius:10px;background:#f3f4f6">` : `<div id="peImg" class="noimg" style="width:90px;height:90px;font-size:30px">${emojiCat(p.categoria)}</div>`}</div>
-      <div><button class="small sec" onclick="buscarFoto('${esc(sku)}')">🔎 Buscar en internet</button> <button class="small sec" onclick="document.getElementById('peFile').click()">📷 Subir foto</button> ${p.imagen_url ? `<button class="small sec" onclick="quitarFoto('${esc(sku)}')">Quitar</button>` : ''}<input id="peFile" type="file" accept="image/*" style="display:none" onchange="subirFoto('${esc(sku)}',this)"></div></div>` : ''}
+      <div><button class="small" onclick="document.getElementById('peCam').click()">📸 Tomar foto</button> <button class="small sec" onclick="document.getElementById('peFile').click()">🖼️ Galería</button> <button class="small sec" onclick="buscarFoto('${esc(sku)}')">🔎 Internet</button> <button class="small sec" onclick="pegarUrlFoto('${esc(sku)}')">🔗 URL</button> ${p.imagen_url ? `<button class="small sec" onclick="quitarFoto('${esc(sku)}')">Quitar</button>` : ''}
+        <input id="peCam" type="file" accept="image/*" capture="environment" style="display:none" onchange="subirFoto('${esc(sku)}',this)">
+        <input id="peFile" type="file" accept="image/*" style="display:none" onchange="subirFoto('${esc(sku)}',this)"></div></div>` : ''}
     <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="saveProd(${sku ? 'true' : 'false'})">Guardar</button></div>`);
 }
 async function saveProd(isEdit) {
   const p = { sku: $('peSku').value.trim(), nombre: $('peNom').value.trim(), categoria: $('peCat').value, tier: $('peTier').value,
     unid_por_empaque: +$('peUE').value, costo_empaque: +$('peCE').value, activo: $('peAct').value === '1', codigo_proveedor: $('peCP').value.trim() };
-  if (isEdit) p.stock = $('peStock').value; else p.empaques_comprados = +$('peEmp').value;
+  p.percha_objetivo = $('peObj').value; p.stock_minimo = $('peMin').value;
+  if (isEdit) { p.stock_percha = $('pePer').value; p.stock_bodega = $('peBod').value; } else p.empaques_comprados = +$('peEmp').value;
   try { await call('apiAdminGuardarProducto', p); closeModal(); toast('Producto guardado', 'ok'); aCatalogo(); } catch (e) {}
 }
 /* --- Fotos --- */
@@ -836,9 +917,31 @@ async function buscarFoto(sku) {
 async function elegirFoto(sku, url) {
   try { const r = await call('apiAdminGuardarImagen', sku, url, null); const p = S.admin.prods.find(x => x.sku === sku); p.imagen_url = r.imagen_url; toast('Foto guardada', 'ok'); editProd(sku); } catch (e) {}
 }
-async function subirFoto(sku, input) {
+async function subirFoto(sku, input, sinModal) {
   const f = input.files[0]; if (!f) return;
-  try { const payload = await fileToPayload(f); const r = await call('apiAdminGuardarImagen', sku, '', payload); const p = S.admin.prods.find(x => x.sku === sku); p.imagen_url = r.imagen_url; toast('Foto guardada', 'ok'); editProd(sku); } catch (e) { toast(e.message, 'err'); }
+  try {
+    loading(true, 'Subiendo foto…');
+    const payload = await fileToPayload(f);
+    const r = await gs('apiAdminGuardarImagen', sku, '', payload);
+    loading(false);
+    const p = S.admin.prods.find(x => x.sku === sku); if (p) p.imagen_url = r.imagen_url;
+    const c = S.catalogo.find(x => x.sku === sku); if (c) c.imagen_url = r.imagen_url;
+    toast('📸 Foto guardada', 'ok');
+    if (sinModal) renderProds(); else editProd(sku);
+  } catch (e) { loading(false); toast(e.message, 'err'); }
+}
+// Desde la lista del catálogo: abre la cámara directo y guarda sin pasar por el formulario
+function fotoRapida(sku) {
+  let inp = $('camRapida');
+  if (!inp) { inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.id = 'camRapida'; inp.style.display = 'none'; document.body.appendChild(inp); }
+  inp.setAttribute('capture', 'environment'); inp.value = '';
+  inp.onchange = () => subirFoto(sku, inp, true);
+  inp.click();
+}
+function pegarUrlFoto(sku) {
+  modal(`<h3>🔗 Foto desde una URL</h3><p class="small muted">Abre la foto del producto en cualquier web (Tipti, Supermaxi, el fabricante…), clic derecho → "Copiar dirección de la imagen" y pégala aquí. Se descarga y se guarda en tu Drive.</p>
+    <input id="puUrl" placeholder="https://…/imagen.jpg">
+    <div class="row" style="margin-top:12px"><button class="sec" onclick="editProd('${esc(sku)}')">Cancelar</button><button onclick="elegirFoto('${esc(sku)}',$('puUrl').value.trim())">Guardar</button></div>`);
 }
 async function quitarFoto(sku) {
   try { await call('apiAdminQuitarImagen', sku); const p = S.admin.prods.find(x => x.sku === sku); p.imagen_url = ''; editProd(sku); } catch (e) {}
