@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="La Tiendita">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v11.html (GitHub Pages) — espera Motor API v10 (solo cambios de frontend: cámara en catálogo). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v12.html (GitHub Pages) — espera Motor API v11. Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--brand:#0f766e;--brand2:#14b8a6;--danger:#dc2626;--ok:#16a34a;--warn:#d97706;--r:14px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -199,7 +199,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 10;
+const EXPECTED_API = 11;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -755,7 +755,7 @@ async function aRestock() {
   try {
     const r = await call('apiAdminRestock'); S.admin.restock = r;
     const c = r.config;
-    $('a-restock').innerHTML = `<p class="small muted" style="margin:0 0 10px">Regla: <b>${Math.round(c.fraccion_percha * 100)}%</b> del stock en percha y el resto en bodega (Config → FRACCION_PERCHA). El consumo semanal se calcula con las ventas de las últimas <b>${c.semanas_historial}</b> semanas; la recompra busca cubrir <b>${c.semanas_cobertura}</b> semanas (Config → SEMANAS_COBERTURA). El objetivo de percha y el mínimo se ajustan por producto en Catálogo → ✏️.</p>
+    $('a-restock').innerHTML = `<p class="small muted" style="margin:0 0 10px">Flujo: la mercadería nueva entra a <b>bodega</b>; aquí ves cuánto sacar a percha para tener <b>${Math.round(c.fraccion_percha * 100)}%</b> del stock afuera (Config → FRACCION_PERCHA). El consumo semanal se calcula con las ventas de las últimas <b>${c.semanas_historial}</b> semanas; la recompra busca cubrir <b>${c.semanas_cobertura}</b> semanas (Config → SEMANAS_COBERTURA). El objetivo de percha y el mínimo se ajustan por producto en Catálogo → ✏️.</p>
       <div class="card"><h3>🔄 Restock interno — sacar de bodega a percha</h3>
         ${r.interno.length ? `<div class="tbl"><table><thead><tr><th>✓</th><th>Producto</th><th class="right">Percha</th><th class="right">Objetivo</th><th class="right">Bodega</th><th class="right">Sacar</th></tr></thead><tbody>
           ${r.interno.map((it, i) => `<tr><td><input type="checkbox" class="rsChk" data-i="${i}" ${it.mover > 0 ? 'checked' : 'disabled'} style="width:auto"></td>
@@ -990,7 +990,7 @@ async function aFactura() {
   let facts = [];
   try { facts = await gs('apiAdminFacturas'); } catch (e) {}
   $('a-factura').innerHTML = `<div class="card"><h3>📄 Subir factura de compra</h3>
-    <p class="small muted" style="margin-top:0">Sube el PDF de la factura electrónica. Se lee la tabla de productos (Cód. Principal · Cantidad · Descripción · Precio Unitario · Precio Total) directamente del PDF y el archivo se guarda en Drive. Tú revisas: nombre, unidades por empaque, categoría y precio de venta. Al importar, los productos nuevos reciben SKU y foto automática; los que ya existen (mismo código de proveedor o nombre) solo suman stock y actualizan costo.</p>
+    <p class="small muted" style="margin-top:0">Sube el PDF de la factura electrónica. Se lee la tabla de productos (Cód. Principal · Cantidad · Descripción · Precio Unitario · Precio Total) directamente del PDF y el archivo se guarda en Drive. Tú revisas: nombre, unidades por empaque, categoría y precio de venta. Al importar, los productos nuevos reciben SKU y foto automática; los que ya existen (mismo código de proveedor o nombre) solo suman stock y actualizan costo. <b>Todo lo importado entra a bodega</b>; luego 📦 Restock te dice cuánto pasar a percha.</p>
     <label>Proveedor / referencia</label><input id="fxProv" placeholder="Ej: Supermaxi 14-sep">
     <label>Archivo</label>
     <div class="file" onclick="document.getElementById('fxFile').click()"><div id="fxFileTxt">📎 Toca para elegir PDF o foto</div><input id="fxFile" type="file" accept="application/pdf,image/*" onchange="previewFile(this,null,'fxFileTxt')"></div>
@@ -1169,7 +1169,8 @@ async function importar(facturaId) {
     toast('✅ ' + r.nuevos + ' nuevos, ' + r.actualizados + ' actualizados', 'ok');
     $('fxResult').innerHTML = '';
     if (r.imgAuto && r.skusNuevos && r.skusNuevos.length) await autoFotos(r.skusNuevos);
-    S.catalogo = await gs('apiCatalogo'); renderGrid(); aFactura();
+    S.catalogo = await gs('apiCatalogo'); renderGrid();
+    if (r.aBodega) { toast('📦 La mercadería entró a bodega. Revisa cuánto pasar a percha.', 'ok'); adminShow('restock'); } else aFactura();
   } catch (e) {}
 }
 
