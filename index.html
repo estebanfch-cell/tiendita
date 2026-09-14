@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="La Tiendita">
+<title>LA TIENDITA</title>
+<!-- LA TIENDITA — Frontend index_v07.html (GitHub Pages) — espera Motor API v7. Pega la URL /exec de tu Apps Script en API_URL. -->
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--brand:#0f766e;--brand2:#14b8a6;--danger:#dc2626;--ok:#16a34a;--warn:#d97706;--r:14px}
+*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 14px;background:var(--brand);color:#fff;font-weight:600}
+button.sec{background:#e5e7eb;color:var(--ink)}button.ghost{background:transparent;color:var(--brand);padding:6px 8px}
+button.danger{background:var(--danger)}button.small{padding:6px 10px;font-size:13px;border-radius:8px}
+button:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand2);border-color:transparent}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.wrap{flex-wrap:wrap}
+.muted{color:var(--muted)}.small{font-size:12px}.b{font-weight:700}.right{text-align:right}
+.hide{display:none!important}
+header{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:10px}
+header .logo{font-weight:800;font-size:17px;color:var(--brand);letter-spacing:.3px}
+header .saldo{margin-left:auto;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;border-radius:999px;padding:6px 12px;font-weight:700;font-size:14px;white-space:nowrap}
+header .who{font-size:12px;color:var(--muted);max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+main{padding:12px 12px 140px;max-width:960px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:15px}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:30;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;background:none;color:var(--muted);border-radius:0;padding:10px 4px 8px;font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600}
+.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.prod{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:6px;min-height:130px}
+.prod .nm{font-weight:700;font-size:14px;line-height:1.25;min-height:2.5em}
+.prod .img{width:100%;aspect-ratio:1/1;object-fit:contain;border-radius:10px;background:#f3f4f6;display:block}.prod .noimg{width:100%;aspect-ratio:1/1;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:34px}
+.thumb-sm{width:44px;height:44px;object-fit:contain;border-radius:8px;background:#f3f4f6}
+.cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}.cands .c{border:2px solid var(--line);border-radius:10px;padding:4px;cursor:pointer;text-align:center}.cands .c img{width:100%;aspect-ratio:1/1;object-fit:contain}.cands .c.on{border-color:var(--brand)}
+.prod .pr{font-weight:800;color:var(--brand);font-size:15px}.prod .cat{font-size:11px;color:var(--muted)}
+.prod .stk{font-size:11px;color:var(--muted)}.prod .stk.low{color:var(--warn);font-weight:700}
+.qty{display:flex;align-items:center;gap:6px;margin-top:auto}
+.qty button{width:36px;height:36px;padding:0;border-radius:10px;font-size:20px;line-height:1;background:#e5e7eb;color:var(--ink)}
+.qty button.add{background:var(--brand);color:#fff}.qty span{min-width:26px;text-align:center;font-weight:700}
+.prod.agotado{opacity:.55}
+#cartbar{position:fixed;left:12px;right:12px;bottom:66px;z-index:25;background:var(--ink);color:#fff;border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#cartbar .tot{margin-left:auto;font-weight:800;font-size:16px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet .box{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 24px}
+.sheet .box h3{margin:0 0 8px}
+.line{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.line .nm{flex:1;font-weight:600}.line .sub{font-weight:700;white-space:nowrap}
+.total{display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:12px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:130px;background:#111827;color:#fff;padding:10px 16px;border-radius:12px;z-index:60;font-weight:600;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.toast.err{background:var(--danger)}.toast.ok{background:var(--ok)}
+#loading{position:fixed;inset:0;background:rgba(255,255,255,.7);z-index:70;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-weight:700;color:var(--brand)}
+.spin{width:36px;height:36px;border:4px solid #ccfbf1;border-top-color:var(--brand);border-radius:50%;animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+.badge.pendiente{background:#fef3c7;color:#92400e}.badge.aprobada,.badge.preaprobada{background:#dbeafe;color:#1e40af}.badge.cruzada,.badge.cruzado{background:#dcfce7;color:#166534}.badge.rechazada,.badge.sin_match{background:#fee2e2;color:#991b1b}.badge.descartado{background:#f3f4f6;color:#6b7280}
+.badge.admin{background:#e0e7ff;color:#3730a3}.badge.usuario{background:#f3f4f6;color:#374151}.badge.off{background:#fee2e2;color:#991b1b}
+.mov{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.mov .m{font-weight:800;white-space:nowrap}.mov .m.neg{color:var(--danger)}.mov .m.pos{color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}th{font-size:11px;color:var(--muted);text-transform:uppercase}
+.tbl{overflow-x:auto}
+.subtabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}.subtabs::-webkit-scrollbar{display:none}
+.subtabs button{flex:0 0 auto;background:#fff;color:var(--ink);border:1px solid var(--line);padding:8px 12px;font-size:13px}.subtabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px}.kpi .v{font-size:22px;font-weight:800;color:var(--brand)}.kpi .l{font-size:12px;color:var(--muted)}
+.bar{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}.bar .lbl{width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar .trk{flex:1;background:#eef2f7;border-radius:6px;height:18px;overflow:hidden}.bar .fil{height:100%;background:var(--brand2);border-radius:6px}.bar .val{width:64px;text-align:right;font-weight:700}
+.file{border:2px dashed var(--line);border-radius:var(--r);padding:16px;text-align:center;color:var(--muted);background:#fafafa}
+.file input{display:none}
+.thumb{max-width:100%;max-height:220px;border-radius:10px;margin-top:8px}
+.imp td input,.imp td select{padding:6px 8px;border-radius:8px;min-width:70px}.imp td input.w{min-width:170px}
+.chipver{position:fixed;left:10px;bottom:70px;font-size:10px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 8px;z-index:21}
+.chipver.bad{color:var(--danger);border-color:var(--danger)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+#login{position:fixed;inset:0;background:linear-gradient(160deg,#0f766e,#134e4a);z-index:65;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+#login .box{background:#fff;border-radius:18px;padding:22px 18px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+#login h2{margin:0 0 2px;color:var(--brand);font-size:24px}#login .sub{color:var(--muted);font-size:13px;margin-bottom:10px}
+#login input{font-size:16px}
+.pin{letter-spacing:6px;font-size:22px!important;text-align:center}
+.menu{margin-left:6px;background:#f3f4f6;color:var(--ink);padding:6px 10px;border-radius:10px}
+#qr{display:flex;justify-content:center;margin:10px 0}#qr img,#qr canvas{border:8px solid #fff;border-radius:8px}
+a{color:var(--brand)}
+@media(min-width:720px){nav.tabs{max-width:960px;margin:0 auto;left:0;right:0;border-radius:14px 14px 0 0}#cartbar{max-width:600px;margin:0 auto}}
+</style>
+</head>
+<body>
+<div id="loading"><div class="spin"></div><div id="loadmsg">Cargando LA TIENDITA…</div></div>
+
+<div id="login" class="hide"><div class="box">
+  <h2 id="lgTitle">LA TIENDITA</h2><div class="sub" id="lgSub">Tienda interna · precios subsidiados</div>
+  <div id="lgMsg" class="small" style="color:var(--danger);min-height:16px"></div>
+  <div id="lgEntrar">
+    <label>Correo</label><input id="lgEmail" type="email" autocomplete="username" placeholder="tu@correo.com">
+    <label>PIN</label><input id="lgPin" class="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••">
+    <div style="margin-top:16px"><button style="width:100%" onclick="doLogin()">Entrar</button></div>
+    <p class="small muted" style="text-align:center;margin:14px 0 0">¿Primera vez? <a href="#" onclick="lgMode('crear');return false">Crear mi cuenta</a><br>¿Olvidaste tu PIN? Pídele al administrador que lo reinicie.</p>
+  </div>
+  <div id="lgCrear" class="hide">
+    <div class="row"><div><label>Nombre</label><input id="rgNombre" autocomplete="given-name"></div><div><label>Apellido</label><input id="rgApellido" autocomplete="family-name"></div></div>
+    <label>Cédula</label><input id="rgCedula" inputmode="numeric" maxlength="20" placeholder="10 dígitos">
+    <label>Correo</label><input id="rgEmail" type="email" autocomplete="email" placeholder="tu@correo.com">
+    <div class="row"><div><label>PIN (4-8 dígitos)</label><input id="rgPin" class="pin" type="password" inputmode="numeric" maxlength="8"></div><div><label>Repetir PIN</label><input id="rgPin2" class="pin" type="password" inputmode="numeric" maxlength="8"></div></div>
+    <label>Código de invitación</label><input id="rgCodigo" placeholder="Te lo da el administrador o viene en el QR" autocapitalize="characters">
+    <div style="margin-top:16px"><button style="width:100%" onclick="doRegistro()">Crear cuenta y entrar</button></div>
+    <p class="small muted" style="text-align:center;margin:14px 0 0">¿Ya tienes cuenta? <a href="#" onclick="lgMode('entrar');return false">Entrar</a></p>
+  </div>
+</div></div>
+
+<header>
+  <div><div class="logo" id="hLogo">LA TIENDITA</div><div class="who" id="hWho"></div></div>
+  <div class="saldo" id="hSaldo">$0.00</div><button class="menu" onclick="userMenu()" title="Menú">☰</button>
+</header>
+
+<main>
+  <!-- TIENDA -->
+  <section id="v-tienda">
+    <input id="q" placeholder="🔍 Buscar producto…" autocomplete="off">
+    <div class="chips" id="cats"></div>
+    <div class="chips" id="tiers"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty hide" id="noprod">No hay productos en esta categoría.</div>
+  </section>
+
+  <!-- HISTORIAL -->
+  <section id="v-historial" class="hide">
+    <div class="card"><h3>Mi saldo</h3><div style="font-size:30px;font-weight:800;color:var(--brand)" id="hisSaldo">$0.00</div>
+      <div class="small muted">Saldo = recargas aprobadas − compras ± ajustes</div></div>
+    <div class="card"><h3>🧾 Mis compras</h3><div id="hisCompras"></div></div>
+    <div class="card"><h3>💵 Mis recargas</h3><div id="hisRecargas"></div></div>
+    <div class="card"><h3>📒 Movimientos</h3><div id="hisMovs"></div></div>
+  </section>
+
+  <!-- RECARGAR -->
+  <section id="v-recargar" class="hide">
+    <div class="card">
+      <h3>💵 Recargar saldo</h3>
+      <p class="small muted" style="margin-top:0">Transfiere o deposita el dinero y sube la foto del comprobante. <b>Tu saldo se acredita al instante</b> y puedes comprar de inmediato; luego el administrador lo cruza con el estado de cuenta del banco. Si el pago no aparece en el banco, la recarga se reversa.</p>
+      <label>Monto ($)</label>
+      <input id="recMonto" type="number" inputmode="decimal" step="0.25" min="1" placeholder="Ej: 5.00">
+      <div class="chips" style="margin-top:6px"><button class="chip" onclick="setMonto(2)">$2</button><button class="chip" onclick="setMonto(5)">$5</button><button class="chip" onclick="setMonto(10)">$10</button><button class="chip" onclick="setMonto(20)">$20</button></div>
+      <label>Comprobante de pago (foto o PDF)</label>
+      <div class="file" onclick="document.getElementById('recFile').click()">
+        <div id="recFileTxt">📷 Toca para tomar foto o elegir archivo</div>
+        <input id="recFile" type="file" accept="image/*,application/pdf" onchange="previewFile(this,'recPrev','recFileTxt')">
+        <img id="recPrev" class="thumb hide" alt="">
+      </div>
+      <label>Fecha y hora en que hiciste el pago (la del comprobante)</label>
+      <input id="recFecha" type="datetime-local">
+      <label>Nota (opcional)</label>
+      <input id="recNota" placeholder="Ej: transferencia Banco Pichincha 14/09">
+      <div style="margin-top:14px"><button style="width:100%" onclick="enviarRecarga()">Enviar solicitud de recarga</button></div>
+    </div>
+    <div class="card"><h3>Mis solicitudes</h3><div id="recLista"></div></div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="v-admin" class="hide">
+    <div class="subtabs" id="asubs">
+      <button data-a="resumen" class="on">📊 Resumen</button>
+      <button data-a="recargas">💵 Recargas</button>
+      <button data-a="banco">🏦 Banco</button>
+      <button data-a="usuarios">👥 Usuarios</button>
+      <button data-a="catalogo">📦 Catálogo</button>
+      <button data-a="factura">📄 Factura</button>
+      <button data-a="reportes">📈 Reportes</button>
+    </div>
+    <div id="a-resumen"></div>
+    <div id="a-recargas" class="hide"></div>
+    <div id="a-banco" class="hide"></div>
+    <div id="a-usuarios" class="hide"></div>
+    <div id="a-catalogo" class="hide"></div>
+    <div id="a-factura" class="hide"></div>
+    <div id="a-reportes" class="hide"></div>
+  </section>
+</main>
+
+<div id="cartbar" class="hide" onclick="openCart()"><span>🛒</span><span id="cbItems">0 artículos</span><span class="tot" id="cbTotal">$0.00</span><span>›</span></div>
+<div class="chipver" id="chipver">Motor API: …</div>
+
+<nav class="tabs">
+  <button data-v="tienda" class="on"><span class="ic">🛍️</span>Tienda</button>
+  <button data-v="historial"><span class="ic">🧾</span>Historial</button>
+  <button data-v="recargar"><span class="ic">💵</span>Recargar</button>
+  <button data-v="admin" id="tabAdmin" class="hide"><span class="ic">⚙️</span>Admin</button>
+</nav>
+
+<div id="modal"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* ===================== CORE ===================== */
+const EXPECTED_API = 7;
+// ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
+const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
+const $ = id => document.getElementById(id);
+const esc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => '$' + (Math.round((+n || 0) * 100) / 100).toFixed(2);
+const ESTADO_TXT = { pendiente: 'pendiente de aprobación', preaprobada: 'acreditada · por cruzar con banco', aprobada: 'acreditada · por cruzar con banco', cruzada: 'confirmada con banco ✓', rechazada: 'rechazada' };
+const estadoTxt = e => ESTADO_TXT[e] || e;
+
+const NO_TOKEN = { apiLogin: 1, apiRegistrar: 1, apiInfoPublica: 1 };
+const TOKEN_KEY = 'lt_token';
+function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; } }
+function setToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+// Llamada a la API (Apps Script). Content-Type text/plain evita el preflight CORS; Apps Script responde con
+// Access-Control-Allow-Origin:* tras la redirección. Si Google devuelve una página HTML en vez de JSON
+// (pasa de forma intermitente), se reintenta hasta 3 veces.
+async function gs(fn, ...args) {
+  const a = NO_TOKEN[fn] ? args : [getToken()].concat(args);
+  const body = JSON.stringify({ fn, args: a });
+  let lastErr = null;
+  for (let intento = 0; intento < 3; intento++) {
+    try {
+      const resp = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body, redirect: 'follow' });
+      const txt = await resp.text();
+      let j;
+      try { j = JSON.parse(txt); }
+      catch (e) { lastErr = new Error(resp.status >= 400 ? 'Servidor respondió ' + resp.status : 'Respuesta inesperada del servidor'); await new Promise(r => setTimeout(r, 700 * (intento + 1))); continue; }
+      if (j.ok) return j.data;
+      let m = j.error || 'Error desconocido';
+      if (m.indexOf('SESION|') >= 0) { m = m.split('SESION|')[1]; setToken(''); showLogin(m); }
+      throw new Error(m);
+    } catch (e) {
+      if (e instanceof TypeError) { lastErr = new Error('Sin conexión con el servidor. Revisa tu internet.'); await new Promise(r => setTimeout(r, 700 * (intento + 1))); continue; }
+      throw e;
+    }
+  }
+  throw lastErr || new Error('No se pudo conectar');
+}
+let loadCount = 0;
+function loading(on, msg) {
+  loadCount = Math.max(0, loadCount + (on ? 1 : -1));
+  $('loading').classList.toggle('hide', loadCount === 0);
+  if (msg) $('loadmsg').textContent = msg;
+}
+function toast(msg, type) {
+  const t = document.createElement('div'); t.className = 'toast ' + (type || ''); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), type === 'err' ? 5000 : 2800);
+}
+async function call(fn, ...args) {
+  loading(true, 'Procesando…');
+  try { return await gs(fn, ...args); }
+  catch (e) { toast(e.message, 'err'); throw e; }
+  finally { loading(false); }
+}
+
+/* ===================== BOOT ===================== */
+/* ===================== LOGIN ===================== */
+let urlCodigo = '';
+function showLogin(msg) {
+  $('loading').classList.add('hide'); $('login').classList.remove('hide');
+  $('lgMsg').textContent = msg || '';
+  try { $('lgEmail').value = localStorage.getItem('lt_email') || ''; } catch (e) {}
+  if (urlCodigo) { $('rgCodigo').value = urlCodigo; if (!$('lgEmail').value) lgMode('crear'); }
+}
+function lgMode(m) { $('lgEntrar').classList.toggle('hide', m !== 'entrar'); $('lgCrear').classList.toggle('hide', m !== 'crear'); $('lgMsg').textContent = ''; }
+async function doLogin() {
+  const email = $('lgEmail').value.trim(), pin = $('lgPin').value.trim();
+  if (!email || !pin) return $('lgMsg').textContent = 'Escribe tu correo y tu PIN.';
+  loading(true, 'Entrando…');
+  try {
+    const r = await gs('apiLogin', email, pin);
+    setToken(r.token); try { localStorage.setItem('lt_email', email); } catch (e) {}
+    $('lgPin').value = ''; $('login').classList.add('hide');
+    await boot();
+  } catch (e) { $('lgMsg').textContent = e.message; }
+  finally { loading(false); }
+}
+async function doRegistro() {
+  const d = { nombre: $('rgNombre').value.trim(), apellido: $('rgApellido').value.trim(), cedula: $('rgCedula').value.trim(),
+    email: $('rgEmail').value.trim(), pin: $('rgPin').value.trim(), codigo: $('rgCodigo').value.trim() };
+  if (d.pin !== $('rgPin2').value.trim()) return $('lgMsg').textContent = 'Los PIN no coinciden.';
+  loading(true, 'Creando tu cuenta…');
+  try {
+    const r = await gs('apiRegistrar', d);
+    setToken(r.token); try { localStorage.setItem('lt_email', d.email); } catch (e) {}
+    $('login').classList.add('hide');
+    await boot();
+    toast('👋 ¡Bienvenido/a! Tu cuenta está lista. Recarga saldo para empezar a comprar.', 'ok');
+  } catch (e) { $('lgMsg').textContent = e.message; }
+  finally { loading(false); }
+}
+async function logout() {
+  if (!confirm('¿Cerrar sesión en este teléfono?')) return;
+  try { await gs('apiLogout'); } catch (e) {}
+  setToken(''); S.cart = {}; location.reload();
+}
+function userMenu() {
+  modal(`<h3>${esc(S.user ? (S.user.nombre + ' ' + (S.user.apellido || '')) : '')}</h3><div class="small muted">${esc(S.user ? S.user.email : '')}</div>
+    <div style="margin-top:14px"><button class="sec" style="width:100%" onclick="closeModal();cambiarPin(false)">🔑 Cambiar mi PIN</button></div>
+    <div style="margin-top:8px"><button class="danger" style="width:100%" onclick="logout()">Cerrar sesión</button></div>
+    <div style="margin-top:8px"><button class="ghost" style="width:100%" onclick="closeModal()">Volver</button></div>`);
+}
+function cambiarPin(forzado) {
+  modal(`<h3>🔑 ${forzado ? 'Crea tu PIN personal' : 'Cambiar PIN'}</h3>
+    ${forzado ? '<p class="small">Tu PIN actual es temporal. Elige uno nuevo de 4 a 8 dígitos que solo tú conozcas.</p>' : ''}
+    <label>PIN actual</label><input id="cpA" class="pin" type="password" inputmode="numeric" maxlength="8">
+    <label>PIN nuevo</label><input id="cpN" class="pin" type="password" inputmode="numeric" maxlength="8">
+    <label>Repetir PIN nuevo</label><input id="cpN2" class="pin" type="password" inputmode="numeric" maxlength="8">
+    <div class="row" style="margin-top:14px">${forzado ? '' : '<button class="sec" onclick="closeModal()">Cancelar</button>'}<button onclick="doCambiarPin()">Guardar PIN</button></div>`);
+}
+async function doCambiarPin() {
+  if ($('cpN').value !== $('cpN2').value) return toast('Los PIN nuevos no coinciden', 'err');
+  try { await call('apiCambiarPin', $('cpA').value, $('cpN').value); closeModal(); S.user.debeCambiarPin = false; toast('✅ PIN actualizado', 'ok'); } catch (e) {}
+}
+
+/* ===================== BOOT ===================== */
+async function boot() {
+  try {
+    if (!urlCodigo) { try { urlCodigo = new URLSearchParams(location.search).get('codigo') || ''; } catch (e) {} }
+    if (!getToken()) {
+      const info = await gs('apiInfoPublica');
+      $('lgTitle').textContent = info.nombreTienda; $('hLogo').textContent = info.nombreTienda;
+      if (!info.registroAbierto) $('lgCrear').querySelector('button').disabled = true;
+      return showLogin('');
+    }
+    const b = await gs('apiBootstrap');
+    S.user = b.user; S.catalogo = b.catalogo; S.categorias = b.categorias; S.tiers = b.tiers; S.recMin = b.recargaMin; S.recMax = b.recargaMax;
+    $('hLogo').textContent = b.nombreTienda;
+    $('hWho').textContent = ((b.user.nombre || '') + ' ' + (b.user.apellido || '')).trim() || b.user.email;
+    if (b.user.esAdmin) $('hWho').textContent += ' · admin';
+    setSaldo(b.user.saldo);
+    const chip = $('chipver'); chip.textContent = 'Motor API: v' + b.version + (b.version === EXPECTED_API ? ' ✓' : ' ⚠ (app espera v' + EXPECTED_API + ')');
+    chip.classList.toggle('bad', b.version !== EXPECTED_API);
+    if (b.user.esAdmin) $('tabAdmin').classList.remove('hide');
+    cartLoad(); renderChips(); renderGrid(); renderCartBar();
+    $('loading').classList.add('hide'); $('login').classList.add('hide');
+    if (b.user.debeCambiarPin) cambiarPin(true);
+  } catch (e) {
+    if ($('login').classList.contains('hide')) {
+      $('loading').innerHTML = '<div class="card" style="max-width:420px;margin:20px"><h3>No se pudo entrar</h3><p>' + esc(e.message) + '</p><button onclick="location.reload()">Reintentar</button></div>';
+    }
+  }
+}
+function setSaldo(s) { S.user.saldo = +s || 0; $('hSaldo').textContent = money(S.user.saldo); $('hisSaldo').textContent = money(S.user.saldo); }
+
+/* ===================== NAV ===================== */
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => showView(b.dataset.v));
+function showView(v) {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  ['tienda', 'historial', 'recargar', 'admin'].forEach(x => $('v-' + x).classList.toggle('hide', x !== v));
+  $('cartbar').classList.toggle('hide', v !== 'tienda' || cartCount() === 0);
+  if (v === 'historial') loadHistorial();
+  if (v === 'recargar') { if (!$('recFecha').value) setRecFechaNow(); loadMisRecargas(); }
+  if (v === 'admin') adminShow(S.admin.sub || 'resumen');
+}
+
+/* ===================== TIENDA ===================== */
+$('q').addEventListener('input', e => { S.q = e.target.value.toLowerCase(); renderGrid(); });
+function renderChips() {
+  const cats = ['Todas'].concat(S.categorias);
+  $('cats').innerHTML = cats.map(c => `<button class="chip ${S.cat === c ? 'on' : ''}" onclick="setCat('${esc(c)}')">${esc(c)}</button>`).join('');
+  $('tiers').innerHTML = `<button class="chip ${S.tier === 'Todos' ? 'on' : ''}" onclick="setTier('Todos')">Todos los precios</button>` +
+    S.tiers.map(t => `<button class="chip ${S.tier === t.key ? 'on' : ''}" onclick="setTier('${esc(t.key)}')">${esc(t.label)}</button>`).join('');
+}
+function setCat(c) { S.cat = c; renderChips(); renderGrid(); }
+function setTier(t) { S.tier = t; renderChips(); renderGrid(); }
+function emojiCat(c) { c = String(c || '').toLowerCase(); return /dulce|chupete|caramelo/.test(c) ? '🍬' : /bebida|jugo|agua|gaseosa/.test(c) ? '🥤' : /galleta/.test(c) ? '🍪' : /snack|papas/.test(c) ? '🍿' : /l[aá]cteo|yogur|leche/.test(c) ? '🥛' : /fruta/.test(c) ? '🍎' : /aseo|limpieza/.test(c) ? '🧼' : '🛍️'; }
+function tierLabel(k) { const t = S.tiers.find(x => x.key === k); return t ? t.label : k; }
+function renderGrid() {
+  const list = S.catalogo.filter(p => (S.cat === 'Todas' || p.categoria === S.cat) && (S.tier === 'Todos' || p.tier === S.tier) &&
+    (!S.q || p.nombre.toLowerCase().includes(S.q) || p.sku.toLowerCase().includes(S.q)))
+    .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nombre.localeCompare(b.nombre));
+  $('noprod').classList.toggle('hide', list.length > 0);
+  $('grid').innerHTML = list.map(p => {
+    const q = S.cart[p.sku] || 0, out = p.stock <= 0;
+    return `<div class="prod ${out ? 'agotado' : ''}">
+      ${p.imagen_url ? `<img class="img" src="${esc(p.imagen_url)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=noimg>${emojiCat(p.categoria)}</div>'">` : `<div class="noimg">${emojiCat(p.categoria)}</div>`}
+      <div class="cat">${esc(p.categoria)}</div>
+      <div class="nm">${esc(p.nombre)}</div>
+      <div class="pr">${esc(tierLabel(p.tier))}${p.step > 1 ? ' <span class="small muted">(en pares)</span>' : ''}</div>
+      <div class="stk ${p.stock <= 5 ? 'low' : ''}">${out ? 'Agotado' : 'Quedan ' + p.stock}</div>
+      <div class="qty">
+        <button onclick="addCart('${esc(p.sku)}',-1)" ${q === 0 ? 'disabled' : ''}>−</button><span>${q}</span>
+        <button class="add" onclick="addCart('${esc(p.sku)}',1)" ${out || q + p.step > p.stock ? 'disabled' : ''}>+</button>
+      </div></div>`;
+  }).join('');
+}
+
+/* ===================== CARRITO ===================== */
+const cartKey = () => 'lt_carrito_' + (S.user ? S.user.email : 'x');
+function cartLoad() { try { S.cart = JSON.parse(localStorage.getItem(cartKey()) || '{}'); } catch (e) { S.cart = {}; } }
+function cartSave() { try { localStorage.setItem(cartKey(), JSON.stringify(S.cart)); } catch (e) {} }
+function cartCount() { return Object.values(S.cart).reduce((s, n) => s + n, 0); }
+function cartTotal() { return Object.keys(S.cart).reduce((s, sku) => { const p = S.catalogo.find(x => x.sku === sku); return s + (p ? p.precio_unit * S.cart[sku] : 0); }, 0); }
+function addCart(sku, dir) {
+  cartLoad();
+  const p = S.catalogo.find(x => x.sku === sku); if (!p) return;
+  const cur = S.cart[sku] || 0, next = cur + dir * p.step;
+  if (next > p.stock) { toast('Solo quedan ' + p.stock, 'err'); return; }
+  if (next <= 0) delete S.cart[sku]; else S.cart[sku] = next;
+  cartSave(); renderGrid(); renderCartBar();
+}
+function renderCartBar() {
+  const n = cartCount();
+  $('cartbar').classList.toggle('hide', n === 0 || !$('v-tienda') || $('v-tienda').classList.contains('hide'));
+  $('cbItems').textContent = n + (n === 1 ? ' artículo' : ' artículos');
+  $('cbTotal').textContent = money(cartTotal());
+}
+function openCart() {
+  cartLoad();
+  const lines = Object.keys(S.cart).map(sku => { const p = S.catalogo.find(x => x.sku === sku); return p ? { p, q: S.cart[sku] } : null; }).filter(Boolean);
+  const total = cartTotal(), falta = total - S.user.saldo;
+  modal(`<h3>🛒 Tu carrito</h3>
+    ${lines.map(l => `<div class="line"><div class="nm">${esc(l.p.nombre)}<div class="small muted">${esc(tierLabel(l.p.tier))}</div></div>
+      <div class="qty"><button onclick="addCart('${esc(l.p.sku)}',-1);openCart()">−</button><span>${l.q}</span><button class="add" onclick="addCart('${esc(l.p.sku)}',1);openCart()" ${l.q + l.p.step > l.p.stock ? 'disabled' : ''}>+</button></div>
+      <div class="sub">${money(l.p.precio_unit * l.q)}</div></div>`).join('') || '<div class="empty">Carrito vacío</div>'}
+    <div class="total"><span>Total</span><span>${money(total)}</span></div>
+    <div class="row"><span class="muted">Tu saldo</span><span class="right b">${money(S.user.saldo)}</span></div>
+    ${falta > 0.001 ? `<p style="color:var(--danger);font-weight:700">Te faltan ${money(falta)}. <a href="#" onclick="closeModal();showView('recargar');return false">Recargar saldo</a></p>` : ''}
+    <div class="row" style="margin-top:12px"><button class="sec" onclick="closeModal()">Seguir comprando</button>
+    <button onclick="comprar()" ${lines.length === 0 || falta > 0.001 ? 'disabled' : ''}>Confirmar compra</button></div>`);
+}
+async function comprar() {
+  cartLoad();
+  const items = Object.keys(S.cart).map(sku => ({ sku, cantidad: S.cart[sku] }));
+  if (!items.length) return;
+  try {
+    const r = await call('apiComprar', items);
+    S.cart = {}; cartSave(); S.catalogo = r.catalogo; setSaldo(r.saldo);
+    closeModal(); renderGrid(); renderCartBar();
+    toast('✅ Compra realizada: ' + money(r.total) + '. Saldo: ' + money(r.saldo), 'ok');
+  } catch (e) { try { S.catalogo = await gs('apiCatalogo'); renderGrid(); } catch (_) {} }
+}
+
+/* ===================== MODAL ===================== */
+function modal(html) { $('modal').innerHTML = `<div class="sheet" onclick="if(event.target===this)closeModal()"><div class="box">${html}</div></div>`; }
+function closeModal() { $('modal').innerHTML = ''; }
+
+/* ===================== HISTORIAL ===================== */
+async function loadHistorial() {
+  try {
+    const h = await call('apiHistorial');
+    setSaldo(h.saldo);
+    $('hisCompras').innerHTML = h.compras.length ? h.compras.map(c => `<div class="mov"><div><div class="b">${esc(c.fecha)}</div>
+      <div class="small muted">${c.items.map(i => i.cantidad + '× ' + esc(i.nombre)).join(', ')}</div></div><div class="m neg">−${money(c.total)}</div></div>`).join('') : '<div class="empty">Aún no has comprado.</div>';
+    $('hisRecargas').innerHTML = h.recargas.length ? h.recargas.map(r => `<div class="mov"><div><div class="b">${esc(r.fecha)} <span class="badge ${esc(r.estado)}">${esc(estadoTxt(r.estado))}</span></div>
+      ${r.nota_admin ? `<div class="small muted">${esc(r.nota_admin)}</div>` : ''}</div><div class="m ${r.estado === 'rechazada' ? '' : 'pos'}">${money(r.monto)}</div></div>`).join('') : '<div class="empty">Sin recargas.</div>';
+    $('hisMovs').innerHTML = h.movimientos.length ? h.movimientos.map(m => `<div class="mov"><div><div>${esc(m.detalle || m.tipo)}</div><div class="small muted">${esc(m.fecha)} · saldo ${money(m.saldo_despues)}</div></div>
+      <div class="m ${m.monto < 0 ? 'neg' : 'pos'}">${m.monto < 0 ? '−' : '+'}${money(Math.abs(m.monto))}</div></div>`).join('') : '<div class="empty">Sin movimientos.</div>';
+  } catch (e) {}
+}
+
+/* ===================== RECARGAR ===================== */
+function setMonto(v) { $('recMonto').value = v.toFixed(2); }
+function setRecFechaNow() { const d = new Date(); d.setSeconds(0, 0); const off = d.getTimezoneOffset(); const l = new Date(d.getTime() - off * 60000); $('recFecha').value = l.toISOString().slice(0, 16); }
+let recFileData = null;
+async function previewFile(input, imgId, txtId) {
+  const f = input.files[0]; if (!f) return;
+  $(txtId).textContent = '⏳ Preparando ' + f.name + '…';
+  try {
+    const data = await fileToPayload(f);
+    input._payload = data;
+    $(txtId).textContent = '✅ ' + f.name + ' (' + Math.round(data.data.length * 0.75 / 1024) + ' KB)';
+    if (imgId && data.mime.startsWith('image/')) { $(imgId).src = 'data:' + data.mime + ';base64,' + data.data; $(imgId).classList.remove('hide'); }
+    else if (imgId) $(imgId).classList.add('hide');
+  } catch (e) { $(txtId).textContent = '❌ ' + e.message; }
+}
+// Imágenes se comprimen (máx 1600px, JPEG 0.82); PDFs van tal cual (máx 8 MB)
+function fileToPayload(f) {
+  return new Promise((res, rej) => {
+    if (f.type.startsWith('image/')) {
+      const img = new Image(); const url = URL.createObjectURL(f);
+      img.onload = () => {
+        const max = 1600, sc = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        const d = c.toDataURL('image/jpeg', 0.82); URL.revokeObjectURL(url);
+        res({ name: f.name.replace(/\.[^.]+$/, '') + '.jpg', mime: 'image/jpeg', data: d.split(',')[1] });
+      };
+      img.onerror = () => rej(new Error('No se pudo leer la imagen')); img.src = url;
+    } else {
+      if (f.size > 8 * 1024 * 1024) return rej(new Error('Archivo muy grande (máx 8 MB)'));
+      const r = new FileReader(); r.onload = () => res({ name: f.name, mime: f.type || 'application/pdf', data: String(r.result).split(',')[1] });
+      r.onerror = () => rej(new Error('No se pudo leer el archivo')); r.readAsDataURL(f);
+    }
+  });
+}
+async function enviarRecarga() {
+  const monto = parseFloat($('recMonto').value);
+  if (!(monto >= S.recMin && monto <= S.recMax)) return toast('Monto entre ' + money(S.recMin) + ' y ' + money(S.recMax), 'err');
+  const payload = $('recFile')._payload;
+  if (!payload) return toast('Adjunta el comprobante de pago', 'err');
+  try {
+    const fechaPago = $('recFecha').value ? new Date($('recFecha').value).toISOString() : '';
+    const r = await call('apiSolicitarRecarga', monto, payload, $('recNota').value, fechaPago);
+    if (r.estado === 'preaprobada') { setSaldo(r.saldo); toast('✅ Recarga acreditada: ' + money(monto) + '. Ya puedes comprar.', 'ok'); }
+    else toast('✅ Solicitud enviada. Se acreditará al aprobarse.', 'ok');
+    $('recMonto').value = ''; $('recNota').value = ''; $('recFile').value = ''; $('recFile')._payload = null; setRecFechaNow();
+    $('recFileTxt').textContent = '📷 Toca para tomar foto o elegir archivo'; $('recPrev').classList.add('hide');
+    loadMisRecargas();
+  } catch (e) {}
+}
+async function loadMisRecargas() {
+  try {
+    const h = await gs('apiHistorial'); setSaldo(h.saldo);
+    $('recLista').innerHTML = h.recargas.length ? h.recargas.map(r => `<div class="mov"><div><div class="b">${esc(r.fecha)} <span class="badge ${esc(r.estado)}">${esc(estadoTxt(r.estado))}</span></div>
+      <div class="small"><a href="${esc(r.comprobante_url)}" target="_blank">ver comprobante</a>${r.nota_admin ? ' · ' + esc(r.nota_admin) : ''}</div></div><div class="m">${money(r.monto)}</div></div>`).join('') : '<div class="empty">Sin solicitudes todavía.</div>';
+  } catch (e) {}
+}
+
+/* ===================== ADMIN ===================== */
+$('asubs').querySelectorAll('button').forEach(b => b.onclick = () => adminShow(b.dataset.a));
+function adminShow(sub) {
+  S.admin.sub = sub;
+  $('asubs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.a === sub));
+  ['resumen', 'recargas', 'banco', 'usuarios', 'catalogo', 'factura', 'reportes'].forEach(x => $('a-' + x).classList.toggle('hide', x !== sub));
+  ({ resumen: aResumen, recargas: aRecargas, banco: aBanco, usuarios: aUsuarios, catalogo: aCatalogo, factura: aFactura, reportes: aReportes })[sub]();
+}
+
+async function aResumen() {
+  try {
+    const r = await call('apiAdminResumen');
+    $('a-resumen').innerHTML = `<div class="kpis">
+      <div class="kpi"><div class="v">${r.recargasSinCruce}</div><div class="l">Recargas por cruzar con banco</div></div>
+      ${r.recargasPendientes ? `<div class="kpi"><div class="v" style="color:var(--warn)">${r.recargasPendientes}</div><div class="l">Pendientes de aprobación</div></div>` : ''}
+      ${r.bancoSinMatch ? `<div class="kpi"><div class="v" style="color:var(--warn)">${r.bancoSinMatch}</div><div class="l">Mov. banco sin match</div></div>` : ''}
+      <div class="kpi"><div class="v">${money(r.ventasHoy)}</div><div class="l">Ventas de hoy</div></div>
+      <div class="kpi"><div class="v">${r.usuarios}</div><div class="l">Usuarios</div></div>
+      <div class="kpi"><div class="v">${money(r.saldoTotalUsuarios)}</div><div class="l">Saldo total en cuentas</div></div>
+      <div class="kpi"><div class="v">${r.productosActivos}</div><div class="l">Productos activos</div></div>
+      <div class="kpi"><div class="v" style="color:${r.stockBajo.length ? 'var(--warn)' : 'var(--brand)'}">${r.stockBajo.length}</div><div class="l">Stock bajo</div></div></div>
+      ${r.stockBajo.length ? `<div class="card" style="margin-top:12px"><h3>⚠️ Stock bajo</h3>${r.stockBajo.map(p => `<div class="mov"><span>${esc(p.nombre)} <span class="small muted">${esc(p.sku)}</span></span><span class="m">${p.stock}</span></div>`).join('')}</div>` : ''}
+      ${r.recargasSinCruce ? `<div style="margin-top:12px" class="row"><button class="sec" onclick="adminShow('recargas')">Ver recargas →</button><button onclick="adminShow('banco')">🏦 Cruzar con el banco →</button></div>` : ''}
+      <div class="card" style="margin-top:12px"><h3>📲 Invitar usuarios</h3>
+        <p class="small muted" style="margin-top:0">Los usuarios escanean el QR (o abren el link) y crean su cuenta con nombre, apellido, cédula, correo y PIN. El código de invitación va incluido en el QR.</p>
+        <div id="qr"></div>
+        <div class="row"><div><label>Código de invitación</label><input id="cfgCodigo" value="${esc(r.codigoInvitacion)}" autocapitalize="characters"></div>
+          <div><label>Registro</label><select id="cfgReg"><option value="1" ${r.registroAbierto ? 'selected' : ''}>abierto (con código)</option><option value="0" ${!r.registroAbierto ? 'selected' : ''}>cerrado (solo admin crea)</option></select></div></div>
+        <label>URL pública de la app (GitHub Pages)</label><input id="cfgUrl" value="${esc(r.appUrlPublica || (esHttp() ? appUrl() : ''))}" placeholder="https://usuario.github.io/latiendita/">
+        ${!r.appUrlPublica && !esHttp() ? '<div class="small" style="color:var(--danger);margin-top:4px">Estás abriendo el archivo desde tu computador (file://). Pega aquí la dirección de GitHub Pages y guarda; el QR y el link se generan con ella.</div>' : ''}
+        <div class="row" style="margin-top:10px"><button class="sec" onclick="copiar(linkInvitacion())">📋 Copiar link de invitación</button><button onclick="guardarRegistro()">Guardar</button></div>
+        <div class="small muted" style="margin-top:8px;word-break:break-all" id="cfgLinkTxt">${esc(linkInvitacion())}</div></div>`;
+    S.admin.appUrlPublica = r.appUrlPublica || '';
+    if (linkInvitacion()) renderQR(linkInvitacion()); else $('qr').innerHTML = '<span class="small muted">Configura la URL pública para generar el QR.</span>';
+  } catch (e) {}
+}
+function appUrl() { return location.origin + location.pathname; } // dónde está abierta esta página (sin ?codigo)
+function esHttp() { return /^https?:$/.test(location.protocol); }
+// Link de invitación: siempre con la URL pública configurada (GitHub Pages); si no hay, la actual solo si es http(s)
+function linkInvitacion() {
+  const base = S.admin.appUrlPublica || (esHttp() ? appUrl() : '');
+  if (!base) return '';
+  const code = ($('cfgCodigo') && $('cfgCodigo').value.trim()) || '';
+  return base + (base.indexOf('?') >= 0 ? '&' : '?') + 'codigo=' + encodeURIComponent(code);
+}
+function renderQR(url) {
+  const el = $('qr'); if (!el) return; el.innerHTML = '';
+  if (typeof QRCode === 'undefined') { el.innerHTML = '<span class="small muted">QR no disponible (sin conexión a cdnjs). Usa el link.</span>'; return; }
+  new QRCode(el, { text: url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+}
+async function guardarRegistro() {
+  try { await call('apiAdminGuardarConfigRegistro', $('cfgCodigo').value.trim().toUpperCase(), $('cfgReg').value === '1', $('cfgUrl').value.trim()); toast('Guardado', 'ok'); aResumen(); } catch (e) {}
+}
+function copiar(t) {
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Link copiado', 'ok'))
+    .catch(() => modal(`<h3>Link de invitación</h3><textarea rows="4" readonly onclick="this.select()">${esc(t)}</textarea><div style="margin-top:10px"><button onclick="closeModal()">Cerrar</button></div>`));
+}
+
+/* --- Recargas --- */
+async function aRecargas(estado) {
+  estado = estado || S.admin.recEstado || 'preaprobada'; S.admin.recEstado = estado;
+  try {
+    const list = await call('apiAdminRecargas', estado);
+    const LBL = { preaprobada: 'por cruzar', cruzada: 'cruzadas', pendiente: 'pendientes', rechazada: 'rechazadas', todas: 'todas' };
+    $('a-recargas').innerHTML = `<div class="chips">${['preaprobada', 'cruzada', 'pendiente', 'rechazada', 'todas'].map(e => `<button class="chip ${estado === e ? 'on' : ''}" onclick="aRecargas('${e}')">${LBL[e]}</button>`).join('')}</div>
+      <p class="small muted" style="margin:0 0 8px">Las recargas se acreditan al instante (preaprobadas). Aquí las cruzas una por una, o en 🏦 Banco subes el estado de cuenta y se cruzan solas.</p>
+      ${list.length ? list.map(r => `<div class="card">
+        <div class="row"><div><div class="b">${esc(r.email)}</div><div class="small muted">${esc(r.fecha)} · ${esc(r.id)}</div></div><div class="right" style="font-size:20px;font-weight:800">${money(r.monto)}</div></div>
+        <div class="small" style="margin:6px 0">🕒 pago: ${esc(r.fecha_pago || r.fecha)}${r.nota_usuario ? ' · 📝 ' + esc(r.nota_usuario) : ''} · <a href="${esc(r.comprobante_url)}" target="_blank">📎 Ver comprobante</a> <span class="badge ${esc(r.estado)}">${esc(estadoTxt(r.estado))}</span></div>
+        ${r.estado === 'pendiente' ? `<input id="nota_${esc(r.id)}" placeholder="Nota admin (opcional)" style="margin:6px 0">
+          <div class="row"><button class="danger" onclick="resolver('${esc(r.id)}','rechazar')">Rechazar</button><button onclick="resolver('${esc(r.id)}','aprobar')">✅ Aprobar ${money(r.monto)}</button></div>`
+        : (r.estado === 'preaprobada' || r.estado === 'aprobada') ? `<input id="nota_${esc(r.id)}" placeholder="Nota admin (opcional)" style="margin:6px 0">
+          <div class="row"><button class="danger" onclick="resolver('${esc(r.id)}','rechazar')">✖ Rechazar y reversar</button><button onclick="resolver('${esc(r.id)}','cruzar')">🏦 Marcar cruzada</button></div>`
+        : `<div class="small muted">${esc(estadoTxt(r.estado))} · ${esc(r.resuelto_por || '')} ${esc(r.fecha_cruce || r.fecha_resolucion || '')}${r.nota_admin ? ' · ' + esc(r.nota_admin) : ''}${r.banco_id ? ' · banco ' + esc(r.banco_id) : ''}</div>
+           ${r.estado === 'cruzada' ? `<div style="margin-top:6px"><button class="small sec" onclick="cruzar('${esc(r.id)}',false)">Deshacer cruce</button></div>` : ''}`}
+      </div>`).join('') : '<div class="empty">No hay recargas ' + esc(estado === 'todas' ? '' : estado + 's') + '.</div>'}`;
+  } catch (e) {}
+}
+async function resolver(id, accion) {
+  const nota = ($('nota_' + id) || {}).value || '';
+  if (accion === 'rechazar' && !confirm('¿Rechazar esta recarga? Si ya estaba acreditada, se descuenta del saldo del usuario (reverso).')) return;
+  try { await call('apiAdminResolverRecarga', id, accion, nota); toast({ aprobar: '✅ Acreditada', cruzar: '🏦 Cruzada con el banco', rechazar: 'Rechazada y reversada' }[accion], 'ok'); aRecargas(); } catch (e) {}
+}
+async function cruzar(id, v) { try { await call('apiAdminMarcarCruce', id, v); toast(v ? 'Marcada como cruzada' : 'Cruce deshecho'); aRecargas(); } catch (e) {} }
+
+/* --- Banco: carga de estado de cuenta y cruce automático --- */
+async function aBanco() {
+  let sin = [];
+  try { sin = await gs('apiAdminBanco', false); } catch (e) {}
+  $('a-banco').innerHTML = `<div class="card"><h3>🏦 Cruce con el estado de cuenta</h3>
+    <p class="small muted" style="margin-top:0">Sube el estado de cuenta del banco (Excel .xlsx/.xls o CSV) o pega las filas. Solo se usan los <b>créditos</b> (depósitos / transferencias recibidas). El sistema cruza cada crédito con una recarga preaprobada del <b>mismo monto</b> cuya hora de pago esté dentro de la tolerancia configurada (Config → CRUCE_TOLERANCIA_MIN, ±15 min por defecto; si el banco no trae hora, mismo día). Lo que cruza pasa a <span class="badge cruzada">confirmada</span>; lo que no, queda abajo para vincularlo a mano.</p>
+    <div class="file" onclick="document.getElementById('bkFile').click()"><div id="bkFileTxt">📎 Toca para elegir el estado de cuenta (xlsx / csv)</div><input id="bkFile" type="file" accept=".xlsx,.xls,.csv,text/csv" onchange="leerBanco(this)"></div>
+    <div class="row" style="margin-top:10px"><button class="sec" onclick="pegarBanco()">Pegar filas</button></div>
+    <div id="bkPreview"></div></div>
+    <div id="bkResult"></div>
+    <div class="card"><h3>Movimientos del banco sin match (${sin.length})</h3>
+      ${sin.length ? sin.map(b => `<div class="card" style="padding:10px"><div><div class="b">${money(b.monto)} · ${esc(b.fecha)}</div><div class="small muted">${esc(b.descripcion)} ${b.referencia ? '· ref ' + esc(b.referencia) : ''}</div></div>
+        <div class="row" style="margin-top:8px"><button class="small sec" onclick="vincularBanco('${esc(b.banco_id)}',${b.monto})">🔗 Vincular a una recarga</button><button class="small sec" onclick="descartarBanco('${esc(b.banco_id)}')">Descartar (no es recarga)</button></div></div>`).join('')
+      : '<div class="empty">Todo cruzado. 👌</div>'}</div>`;
+}
+let bkRows = null; // filas crudas (array de arrays)
+function leerBanco(input) {
+  const f = input.files[0]; if (!f) return;
+  $('bkFileTxt').textContent = '⏳ Leyendo ' + f.name + '…';
+  const esCsv = /\.csv$/i.test(f.name) || f.type === 'text/csv';
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      if (esCsv) bkRows = parseCSV(String(r.result));
+      else {
+        if (typeof XLSX === 'undefined') throw new Error('No se pudo cargar el lector de Excel (sin conexión a cdnjs). Exporta el estado de cuenta como CSV.');
+        const wb = XLSX.read(r.result, { type: 'array', cellDates: true });
+        bkRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+      }
+      $('bkFileTxt').textContent = '✅ ' + f.name + ' · ' + bkRows.length + ' filas';
+      renderBancoMap();
+    } catch (e) { $('bkFileTxt').textContent = '❌ ' + e.message; }
+  };
+  if (esCsv) r.readAsText(f, 'utf-8'); else r.readAsArrayBuffer(f);
+}
+function parseCSV(txt) {
+  const first = txt.split('\n')[0];
+  const sep = first.indexOf('\t') >= 0 ? '\t' : ((first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : ',');
+  return txt.split(/\r?\n/).filter(l => l.trim()).map(l => { const out = []; let cur = '', q = false;
+    for (const ch of l) { if (ch === '"') q = !q; else if (ch === sep && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out.map(x => x.trim()); });
+}
+function pegarBanco() {
+  modal(`<h3>Pegar filas del estado de cuenta</h3><p class="small muted">Copia desde Excel o la web del banco y pega aquí (columnas separadas por tab, ; o ,). Incluye la fila de títulos si la tienes.</p>
+    <textarea id="bkTxt" rows="10" placeholder="fecha  descripción  monto…"></textarea>
+    <div class="row" style="margin-top:12px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="bkRows=parseCSV($('bkTxt').value);closeModal();renderBancoMap()">Continuar</button></div>`);
+}
+// Detecta la fila de encabezado y propone el mapeo de columnas
+function renderBancoMap() {
+  if (!bkRows || !bkRows.length) return toast('No hay filas', 'err');
+  let hdrIdx = 0;
+  for (let i = 0; i < Math.min(15, bkRows.length); i++) {
+    const r = bkRows[i].map(x => String(x).toLowerCase());
+    if (r.some(x => /fecha|date/.test(x)) && r.some(x => /monto|valor|cr[eé]dito|importe|amount|dep[oó]sito|haber|abono/.test(x))) { hdrIdx = i; break; }
+  }
+  const hdr = bkRows[hdrIdx].map((x, i) => String(x || ('Col ' + (i + 1))));
+  const guess = re => { const i = hdr.findIndex(h => re.test(h.toLowerCase())); return i >= 0 ? i : ''; };
+  const g = { fecha: guess(/fecha|date/), hora: guess(/hora|time/), monto: guess(/cr[eé]dito|dep[oó]sito|haber|abono|ingreso/), desc: guess(/descrip|concepto|detalle|glosa/), ref: guess(/documento|n[uú]mero|ref|comprobante/) };
+  if (g.monto === '') g.monto = guess(/monto|valor|importe|amount/);
+  const sel = (id, v, opt) => `<select id="${id}">${opt ? '<option value="">(ninguna)</option>' : ''}${hdr.map((h, i) => `<option value="${i}" ${String(i) === String(v) ? 'selected' : ''}>${esc(h)}</option>`).join('')}</select>`;
+  S.admin.bkHdr = hdrIdx;
+  $('bkPreview').innerHTML = `<div style="margin-top:12px"><div class="b small">Indica qué columna es cada cosa</div>
+    <div class="row wrap"><div><label>Fecha</label>${sel('bkFecha', g.fecha)}</div><div><label>Hora (si viene aparte)</label>${sel('bkHora', g.hora, true)}</div></div>
+    <div class="row wrap"><div><label>Monto del crédito</label>${sel('bkMonto', g.monto)}</div><div><label>Descripción</label>${sel('bkDesc', g.desc, true)}</div><div><label>Referencia / Nº doc</label>${sel('bkRef', g.ref, true)}</div></div>
+    <label class="row" style="margin-top:8px"><input type="checkbox" id="bkSoloPos" checked style="width:auto;flex:0"> <span class="small">Ignorar filas con monto negativo o vacío (débitos)</span></label>
+    <div class="tbl" style="margin-top:8px;max-height:200px;overflow:auto"><table><tbody>${bkRows.slice(hdrIdx, hdrIdx + 6).map(r => `<tr>${hdr.map((_, i) => `<td class="small">${esc(r[i] instanceof Date ? r[i].toLocaleString() : r[i])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="row" style="margin-top:12px"><button onclick="cruzarBanco()">🏦 Cruzar con las recargas</button></div></div>`;
+}
+// dd/mm/yyyy, yyyy-mm-dd, dd-mm-yyyy, con hora opcional; o Date de Excel
+function parseFechaBanco(v, hora) {
+  if (v instanceof Date && !isNaN(v)) { const d = new Date(v); if (hora) aplicarHora(d, hora); return d; }
+  const s = String(v || '').trim(); if (!s) return null;
+  let d = null;
+  let m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(s);
+  if (m) { let y = +m[3]; if (y < 100) y += 2000; d = new Date(y, +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)); }
+  else { m = /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(s); if (m) d = new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)); }
+  if (!d) { const t = new Date(s); if (!isNaN(t)) d = t; }
+  if (d && hora) aplicarHora(d, hora);
+  return d && !isNaN(d) ? d : null;
+}
+function aplicarHora(d, hora) {
+  const m = /(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i.exec(String(hora)); if (!m) return;
+  let h = +m[1]; if (m[4]) { if (/p/i.test(m[4]) && h < 12) h += 12; if (/a/i.test(m[4]) && h === 12) h = 0; }
+  d.setHours(h, +m[2], +(m[3] || 0), 0);
+}
+function parseMonto(v) {
+  if (typeof v === 'number') return v;
+  let s = String(v || '').replace(/[^\d,.\-]/g, ''); if (!s) return NaN;
+  if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if (s.indexOf(',') >= 0) s = /,\d{1,2}$/.test(s) ? s.replace(',', '.') : s.replace(/,/g, '');
+  return parseFloat(s);
+}
+async function cruzarBanco() {
+  const iF = +$('bkFecha').value, iH = $('bkHora').value, iM = +$('bkMonto').value, iD = $('bkDesc').value, iR = $('bkRef').value, soloPos = $('bkSoloPos').checked;
+  const filas = [];
+  bkRows.slice(S.admin.bkHdr + 1).forEach(r => {
+    const monto = parseMonto(r[iM]); if (isNaN(monto) || (soloPos && monto <= 0)) return;
+    const f = parseFechaBanco(r[iF], iH !== '' ? r[+iH] : null); if (!f) return;
+    filas.push({ fecha: f.toISOString(), monto: Math.abs(monto), descripcion: iD !== '' ? String(r[+iD] || '') : '', referencia: iR !== '' ? String(r[+iR] || '') : '' });
+  });
+  if (!filas.length) return toast('No encontré créditos con fecha y monto válidos. Revisa el mapeo de columnas.', 'err');
+  if (!confirm('Se van a cruzar ' + filas.length + ' créditos del banco con las recargas preaprobadas. ¿Continuar?')) return;
+  try {
+    const r = await call('apiAdminCruceBanco', filas, '');
+    const html = `<div class="card"><h3>Resultado del cruce</h3>
+      <div class="kpis"><div class="kpi"><div class="v" style="color:var(--ok)">${r.cruzadas.length}</div><div class="l">Recargas cruzadas</div></div>
+        <div class="kpi"><div class="v" style="color:${r.sinMatch.length ? 'var(--warn)' : 'var(--brand)'}">${r.sinMatch.length}</div><div class="l">Créditos sin match</div></div>
+        <div class="kpi"><div class="v">${r.recargasSinCruce}</div><div class="l">Recargas aún por cruzar</div></div>
+        <div class="kpi"><div class="v">${r.duplicadas}</div><div class="l">Filas ya cargadas antes</div></div></div>
+      ${r.cruzadas.length ? `<div class="tbl" style="margin-top:10px"><table><thead><tr><th>Usuario</th><th>Monto</th><th>Banco</th><th>Método</th></tr></thead><tbody>${r.cruzadas.map(c => `<tr><td>${esc(c.email)}<div class="small muted">${esc(c.recarga_id)}</div></td><td class="b">${money(c.monto)}</td><td class="small">${esc(c.fecha_banco)}</td><td class="small">${esc(c.metodo)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+      </div>`;
+    toast('✅ ' + r.cruzadas.length + ' recargas cruzadas', 'ok');
+    bkRows = null;
+    await aBanco();
+    $('bkResult').innerHTML = html;
+  } catch (e) {}
+}
+async function vincularBanco(bancoId, monto) {
+  try {
+    const recs = (await call('apiAdminRecargas', 'preaprobada')).filter(r => Math.abs(r.monto - monto) < 0.011);
+    modal(`<h3>🔗 Vincular crédito de ${money(monto)}</h3>
+      ${recs.length ? `<label>Recarga preaprobada del mismo monto</label><select id="vkRec">${recs.map(r => `<option value="${esc(r.id)}">${esc(r.email)} · pago ${esc(r.fecha_pago || r.fecha)}</option>`).join('')}</select>
+        <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="doVincular('${esc(bancoId)}')">Vincular</button></div>`
+      : `<p>No hay recargas preaprobadas de ${money(monto)}. Puede ser un ingreso que no corresponde a la tiendita: descártalo.</p><button onclick="closeModal()">Cerrar</button>`}`);
+  } catch (e) {}
+}
+async function doVincular(bancoId) { try { await call('apiAdminVincularBanco', bancoId, $('vkRec').value); closeModal(); toast('Vinculado y cruzado', 'ok'); aBanco(); } catch (e) {} }
+async function descartarBanco(id) { if (!confirm('¿Descartar este movimiento? No se volverá a mostrar.')) return; try { await call('apiAdminDescartarBanco', id); aBanco(); } catch (e) {} }
+
+/* --- Usuarios --- */
+async function aUsuarios() {
+  try {
+    const list = await call('apiAdminUsuarios'); S.admin.users = list;
+    $('a-usuarios').innerHTML = `<div class="row"><input id="uq" placeholder="Buscar usuario…" oninput="renderUsers()"><button style="flex:0 0 auto" onclick="editUser()">＋ Nuevo</button></div>
+      <p class="small muted" style="margin:6px 0 0">El rol (admin / usuario) y el estado también se pueden cambiar directo en la pestaña Usuarios de la hoja.</p>
+      <div class="tbl" style="margin-top:10px"><table><thead><tr><th>Usuario</th><th>Cédula</th><th>Rol</th><th class="right">Saldo</th><th></th></tr></thead><tbody id="ubody"></tbody></table></div>`;
+    renderUsers();
+  } catch (e) {}
+}
+function renderUsers() {
+  const q = ($('uq').value || '').toLowerCase();
+  $('ubody').innerHTML = S.admin.users.filter(u => !q || (u.email + ' ' + u.nombre + ' ' + u.apellido + ' ' + u.cedula).toLowerCase().includes(q)).map((u, i) => `<tr>
+    <td><div class="b">${esc(u.nombre)} ${esc(u.apellido || '')}</div><div class="small muted">${esc(u.email)}</div><div class="small muted">${u.ultimo_acceso ? 'último acceso ' + esc(u.ultimo_acceso) : 'nunca entró'}</div></td>
+    <td class="small">${esc(u.cedula || '—')}</td>
+    <td><span class="badge ${esc(u.rol)}">${esc(u.rol)}</span>${u.activo ? '' : ' <span class="badge off">inactivo</span>'}${u.tienePin ? '' : ' <span class="badge pendiente">sin PIN</span>'}</td>
+    <td class="right b">${money(u.saldo)}</td>
+    <td class="right" style="white-space:nowrap"><button class="small sec" onclick="editUser('${esc(u.email)}')">✏️</button> <button class="small sec" onclick="ajusteSaldo('${esc(u.email)}')">± Saldo</button> <button class="small sec" onclick="resetPin('${esc(u.email)}')">🔑 PIN</button></td></tr>`).join('');
+}
+function editUser(email) {
+  const u = email ? S.admin.users.find(x => x.email === email) : { email: '', nombre: '', apellido: '', cedula: '', rol: 'usuario', activo: true, nota: '' };
+  modal(`<h3>${email ? 'Editar usuario' : 'Nuevo usuario'}</h3>
+    <label>Correo (cualquier correo)</label><input id="ueMail" type="email" value="${esc(u.email)}" ${email ? 'readonly' : ''} placeholder="nombre@correo.com">
+    <div class="row"><div><label>Nombre</label><input id="ueNom" value="${esc(u.nombre)}"></div><div><label>Apellido</label><input id="ueApe" value="${esc(u.apellido || '')}"></div></div>
+    <label>Cédula</label><input id="ueCed" value="${esc(u.cedula || '')}" inputmode="numeric">
+    ${email ? '' : '<label>PIN inicial (el usuario deberá cambiarlo al entrar)</label><input id="uePin" class="pin" inputmode="numeric" maxlength="8" placeholder="1234">'}
+    <label>Rol</label><select id="ueRol"><option value="usuario" ${u.rol === 'usuario' ? 'selected' : ''}>usuario</option><option value="admin" ${u.rol === 'admin' ? 'selected' : ''}>admin</option></select>
+    <label>Estado</label><select id="ueAct"><option value="1" ${u.activo ? 'selected' : ''}>activo</option><option value="0" ${!u.activo ? 'selected' : ''}>inactivo</option></select>
+    <label>Nota</label><input id="ueNota" value="${esc(u.nota || '')}">
+    <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="saveUser()">Guardar</button></div>`);
+}
+async function saveUser() {
+  try {
+    await call('apiAdminGuardarUsuario', { email: $('ueMail').value.trim(), nombre: $('ueNom').value.trim(), apellido: $('ueApe').value.trim(), cedula: $('ueCed').value.trim(),
+      rol: $('ueRol').value, activo: $('ueAct').value === '1', nota: $('ueNota').value, pin: $('uePin') ? $('uePin').value.trim() : '' });
+    closeModal(); toast('Usuario guardado', 'ok'); aUsuarios();
+  } catch (e) {}
+}
+function resetPin(email) {
+  const u = S.admin.users.find(x => x.email === email);
+  modal(`<h3>🔑 Reiniciar PIN</h3><p>${esc(u.nombre)} ${esc(u.apellido || '')} · ${esc(u.email)}</p>
+    <p class="small muted">Se cierra su sesión en todos los teléfonos y deberá entrar con este PIN temporal y cambiarlo.</p>
+    <label>PIN temporal (4-8 dígitos)</label><input id="rpPin" class="pin" inputmode="numeric" maxlength="8" value="1234">
+    <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="doResetPin('${esc(email)}')">Reiniciar</button></div>`);
+}
+async function doResetPin(email) {
+  try { await call('apiAdminResetPin', email, $('rpPin').value.trim()); closeModal(); toast('PIN reiniciado', 'ok'); aUsuarios(); } catch (e) {}
+}
+function ajusteSaldo(email) {
+  const u = S.admin.users.find(x => x.email === email);
+  modal(`<h3>± Ajuste de saldo</h3><p>${esc(u.nombre)} · saldo actual <b>${money(u.saldo)}</b></p>
+    <label>Monto (positivo suma, negativo descuenta)</label><input id="ajM" type="number" step="0.25" placeholder="Ej: 5 o -2.50">
+    <label>Motivo</label><input id="ajD" placeholder="Ej: corrección, pago en efectivo, devolución">
+    <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="doAjuste('${esc(email)}')">Aplicar</button></div>`);
+}
+async function doAjuste(email) {
+  try { await call('apiAdminAjusteSaldo', email, parseFloat($('ajM').value), $('ajD').value); closeModal(); toast('Ajuste aplicado', 'ok'); aUsuarios(); } catch (e) {}
+}
+
+/* --- Catálogo --- */
+async function aCatalogo() {
+  try {
+    const r = await call('apiAdminCatalogo'); S.admin.prods = r.productos; S.categorias = r.categorias; S.tiers = r.tiers;
+    $('a-catalogo').innerHTML = `<div class="row"><input id="cq" placeholder="Buscar SKU / producto…" oninput="renderProds()"><button style="flex:0 0 auto" onclick="editProd()">＋ Producto</button></div>
+      <div class="row" style="margin-top:8px"><button class="small sec" onclick="editCats()">🏷️ Categorías</button><span class="small muted">${r.productos.length} productos · ${r.productos.filter(p => p.activo).length} activos</span></div>
+      <div class="tbl" style="margin-top:10px"><table><thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th class="right">Stock</th><th></th></tr></thead><tbody id="cbody"></tbody></table></div>`;
+    renderProds();
+  } catch (e) {}
+}
+function renderProds() {
+  const q = ($('cq').value || '').toLowerCase();
+  $('cbody').innerHTML = S.admin.prods.filter(p => !q || (p.sku + ' ' + p.nombre + ' ' + p.categoria).toLowerCase().includes(q)).map(p => `<tr style="${p.activo ? '' : 'opacity:.5'}">
+    <td class="small b">${p.imagen_url ? `<img class="thumb-sm" src="${esc(p.imagen_url)}" alt="">` : `<div class="thumb-sm" style="display:flex;align-items:center;justify-content:center">${emojiCat(p.categoria)}</div>`}<div>${esc(p.sku)}</div></td>
+    <td><div class="b">${esc(p.nombre)}</div><div class="small muted">${esc(p.categoria)} · ${p.unid_por_empaque} u/empaque · costo u ${money(p.costo_unit)}${p.codigo_proveedor ? ' · prov ' + esc(p.codigo_proveedor) : ''}</div></td>
+    <td>${esc(tierLabel(p.tier))}</td>
+    <td class="right b" style="color:${p.stock <= 5 ? 'var(--warn)' : 'inherit'}">${p.stock}</td>
+    <td class="right" style="white-space:nowrap"><button class="small sec" onclick="editProd('${esc(p.sku)}')">✏️</button> <button class="small sec" onclick="ingresoStock('${esc(p.sku)}')">＋Stock</button></td></tr>`).join('');
+}
+function selCats(id, val) { return `<select id="${id}">${S.categorias.map(c => `<option ${c === val ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>`; }
+function selTiers(id, val) { return `<select id="${id}">${S.tiers.map(t => `<option value="${esc(t.key)}" ${t.key === val ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select>`; }
+function editProd(sku) {
+  const p = sku ? S.admin.prods.find(x => x.sku === sku) : { sku: '', nombre: '', categoria: S.categorias[0], tier: '25c', unid_por_empaque: 1, empaques_comprados: 0, costo_empaque: 0, stock: 0, activo: true };
+  modal(`<h3>${sku ? 'Editar producto' : 'Nuevo producto'}</h3>
+    <label>SKU ${sku ? '' : '(vacío = automático T0001, T0002…)'}</label><input id="peSku" value="${esc(p.sku)}" ${sku ? 'readonly' : ''}>
+    <label>Nombre</label><input id="peNom" value="${esc(p.nombre)}">
+    <div class="row"><div><label>Categoría</label>${selCats('peCat', p.categoria)}</div><div><label>Rango de precio</label>${selTiers('peTier', p.tier)}</div></div>
+    <div class="row"><div><label>Unidades por empaque</label><input id="peUE" type="number" min="1" value="${p.unid_por_empaque}"></div><div><label>Costo del empaque ($)</label><input id="peCE" type="number" step="0.01" value="${p.costo_empaque}"></div></div>
+    ${sku ? `<label>Stock actual (unidades) — corrige solo si hiciste conteo</label><input id="peStock" type="number" value="${p.stock}">`
+          : `<label>Empaques comprados (stock inicial = empaques × unidades)</label><input id="peEmp" type="number" min="0" value="0">`}
+    <label>Código del proveedor (de la factura)</label><input id="peCP" value="${esc(p.codigo_proveedor || '')}">
+    <label>Estado</label><select id="peAct"><option value="1" ${p.activo ? 'selected' : ''}>activo (visible en la tienda)</option><option value="0" ${!p.activo ? 'selected' : ''}>inactivo</option></select>
+    ${sku ? `<label>Foto</label><div class="row"><div style="flex:0 0 90px">${p.imagen_url ? `<img id="peImg" src="${esc(p.imagen_url)}" style="width:90px;height:90px;object-fit:contain;border-radius:10px;background:#f3f4f6">` : `<div id="peImg" class="noimg" style="width:90px;height:90px;font-size:30px">${emojiCat(p.categoria)}</div>`}</div>
+      <div><button class="small sec" onclick="buscarFoto('${esc(sku)}')">🔎 Buscar en internet</button> <button class="small sec" onclick="document.getElementById('peFile').click()">📷 Subir foto</button> ${p.imagen_url ? `<button class="small sec" onclick="quitarFoto('${esc(sku)}')">Quitar</button>` : ''}<input id="peFile" type="file" accept="image/*" style="display:none" onchange="subirFoto('${esc(sku)}',this)"></div></div>` : ''}
+    <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="saveProd(${sku ? 'true' : 'false'})">Guardar</button></div>`);
+}
+async function saveProd(isEdit) {
+  const p = { sku: $('peSku').value.trim(), nombre: $('peNom').value.trim(), categoria: $('peCat').value, tier: $('peTier').value,
+    unid_por_empaque: +$('peUE').value, costo_empaque: +$('peCE').value, activo: $('peAct').value === '1', codigo_proveedor: $('peCP').value.trim() };
+  if (isEdit) p.stock = $('peStock').value; else p.empaques_comprados = +$('peEmp').value;
+  try { await call('apiAdminGuardarProducto', p); closeModal(); toast('Producto guardado', 'ok'); aCatalogo(); } catch (e) {}
+}
+/* --- Fotos --- */
+async function buscarFoto(sku) {
+  const p = S.admin.prods.find(x => x.sku === sku);
+  try {
+    const r = await call('apiAdminBuscarImagen', p.nombre);
+    modal(`<h3>🔎 Fotos para "${esc(p.nombre)}"</h3><p class="small muted">Búsqueda: "${esc(r.query)}"${r.googleConfigurado ? '' : ' · solo Open Food Facts (configura GOOGLE_CSE_KEY/CX en Config para buscar también en Google)'}. Toca una para usarla.</p>
+      ${r.candidatos.length ? `<div class="cands">${r.candidatos.map((c, i) => `<div class="c" onclick="elegirFoto('${esc(sku)}','${esc(c.url)}')"><img src="${esc(c.thumb || c.url)}" alt="" loading="lazy"><div class="small muted" style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(c.titulo || c.fuente)}</div></div>`).join('')}</div>` : '<div class="empty">Sin resultados. Sube una foto propia.</div>'}
+      <div class="row" style="margin-top:12px"><button class="sec" onclick="editProd('${esc(sku)}')">← Volver</button></div>`);
+  } catch (e) {}
+}
+async function elegirFoto(sku, url) {
+  try { const r = await call('apiAdminGuardarImagen', sku, url, null); const p = S.admin.prods.find(x => x.sku === sku); p.imagen_url = r.imagen_url; toast('Foto guardada', 'ok'); editProd(sku); } catch (e) {}
+}
+async function subirFoto(sku, input) {
+  const f = input.files[0]; if (!f) return;
+  try { const payload = await fileToPayload(f); const r = await call('apiAdminGuardarImagen', sku, '', payload); const p = S.admin.prods.find(x => x.sku === sku); p.imagen_url = r.imagen_url; toast('Foto guardada', 'ok'); editProd(sku); } catch (e) { toast(e.message, 'err'); }
+}
+async function quitarFoto(sku) {
+  try { await call('apiAdminQuitarImagen', sku); const p = S.admin.prods.find(x => x.sku === sku); p.imagen_url = ''; editProd(sku); } catch (e) {}
+}
+// Busca foto automáticamente para una lista de SKUs (uno por uno, con progreso)
+async function autoFotos(skus) {
+  let ok = 0;
+  for (let i = 0; i < skus.length; i++) {
+    loading(true, 'Buscando fotos… ' + (i + 1) + '/' + skus.length);
+    try { const r = await gs('apiAdminAutoImagen', skus[i]); if (r.imagen_url) ok++; } catch (e) {}
+    loading(false);
+  }
+  toast('📷 Fotos encontradas: ' + ok + ' de ' + skus.length + (ok < skus.length ? '. Las demás las puedes buscar o subir desde Catálogo.' : ''), 'ok');
+}
+
+function ingresoStock(sku) {
+  const p = S.admin.prods.find(x => x.sku === sku);
+  modal(`<h3>＋ Ingreso de stock</h3><p><b>${esc(p.nombre)}</b> · ${p.unid_por_empaque} unidades por empaque · stock ${p.stock}</p>
+    <label>Empaques comprados</label><input id="isEmp" type="number" min="1" value="1" oninput="$('isPrev').textContent='= '+(this.value*${p.unid_por_empaque})+' unidades'">
+    <div class="small muted" id="isPrev">= ${p.unid_por_empaque} unidades</div>
+    <label>Costo por empaque ($) (opcional, actualiza costo)</label><input id="isCE" type="number" step="0.01" value="${p.costo_empaque}">
+    <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="doIngreso('${esc(sku)}')">Ingresar</button></div>`);
+}
+async function doIngreso(sku) {
+  try { const r = await call('apiAdminIngresoStock', sku, +$('isEmp').value, $('isCE').value, ''); closeModal(); toast('Stock actualizado: ' + r.stock, 'ok'); aCatalogo(); } catch (e) {}
+}
+function editCats() {
+  modal(`<h3>🏷️ Categorías</h3><p class="small muted">Una por línea. Los productos con categorías eliminadas conservan su texto.</p>
+    <textarea id="ceTxt" rows="8">${esc(S.categorias.join('\n'))}</textarea>
+    <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="saveCats()">Guardar</button></div>`);
+}
+async function saveCats() {
+  try { const r = await call('apiAdminGuardarCategorias', $('ceTxt').value.split('\n')); S.categorias = r.categorias; closeModal(); toast('Categorías guardadas', 'ok'); renderChips(); aCatalogo(); } catch (e) {}
+}
+
+/* --- Factura PDF → catálogo --- */
+async function aFactura() {
+  let facts = [];
+  try { facts = await gs('apiAdminFacturas'); } catch (e) {}
+  $('a-factura').innerHTML = `<div class="card"><h3>📄 Subir factura de compra</h3>
+    <p class="small muted" style="margin-top:0">Sube el PDF de la factura electrónica. Se lee la tabla de productos (Cód. Principal · Cantidad · Descripción · Precio Unitario · Precio Total) directamente del PDF y el archivo se guarda en Drive. Tú revisas: nombre, unidades por empaque, categoría y precio de venta. Al importar, los productos nuevos reciben SKU y foto automática; los que ya existen (mismo código de proveedor o nombre) solo suman stock y actualizan costo.</p>
+    <label>Proveedor / referencia</label><input id="fxProv" placeholder="Ej: Supermaxi 14-sep">
+    <label>Archivo</label>
+    <div class="file" onclick="document.getElementById('fxFile').click()"><div id="fxFileTxt">📎 Toca para elegir PDF o foto</div><input id="fxFile" type="file" accept="application/pdf,image/*" onchange="previewFile(this,null,'fxFileTxt')"></div>
+    <div class="row" style="margin-top:12px"><button onclick="subirFactura()">Analizar factura</button><button class="sec" onclick="pegarTexto()">Pegar texto / lista</button></div></div>
+    <div id="fxResult"></div>
+    <div class="card"><h3>Facturas subidas</h3>${facts.length ? `<div class="tbl"><table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Estado</th><th>Items</th><th></th></tr></thead><tbody>${facts.map(f => `<tr><td class="small">${esc(f.fecha)}</td><td>${esc(f.proveedor)}<div class="small muted">${esc(f.id)}</div></td><td><span class="badge ${f.estado === 'procesada' ? 'aprobada' : 'pendiente'}">${esc(f.estado)}</span></td><td>${f.items_importados}</td><td><a href="${esc(f.archivo_url)}" target="_blank">PDF</a>${f.ocr_doc_url ? ` · <a href="${esc(f.ocr_doc_url)}" target="_blank">texto</a>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Ninguna todavía.</div>'}</div>`;
+}
+async function subirFactura() {
+  const payload = $('fxFile')._payload; if (!payload) return toast('Elige el archivo de la factura', 'err');
+  const esPdf = /pdf/i.test(payload.mime) || /\.pdf$/i.test(payload.name || '');
+  try {
+    let items = null, texto = '';
+    if (esPdf && typeof pdfjsLib !== 'undefined') {
+      loading(true, 'Leyendo la tabla de productos del PDF…');
+      try { const r = await extraerItemsPDF(payload); items = r.items; texto = r.texto; } catch (e) { console.warn('pdf.js', e); items = null; }
+      loading(false);
+    }
+    const leidoLocal = !!(items && items.length);
+    if (esPdf && !leidoLocal) toast('No pude ubicar la tabla de productos en el PDF; intento con OCR. Revisa bien la tabla antes de importar.', 'err');
+    loading(true, leidoLocal ? 'Guardando el PDF en Drive…' : 'Subiendo y leyendo la factura con OCR… (20-40 s)');
+    const r = await gs('apiAdminSubirFactura', payload, $('fxProv').value, leidoLocal);
+    loading(false);
+    S.admin.facturaId = r.facturaId;
+    if (!leidoLocal) { items = r.items; texto = r.texto; if (r.aviso) toast(r.aviso, 'err'); }
+    if (!items.length) toast('No encontré la tabla de productos. Revisa el texto leído o usa "Pegar texto".', 'err');
+    renderImport(items, texto, r.facturaId);
+  } catch (e) { loading(false); toast(e.message, 'err'); }
+}
+// Lee el PDF en el navegador (pdf.js) usando la posición (x,y) de cada texto.
+// 1) Ubica la banda de títulos (Cod. Principal / Cantidad / Descripción / Precio Unitario / Precio Total…), aunque
+//    los títulos vengan partidos en dos líneas dentro de la celda.
+// 2) Usa la columna CANTIDAD como ancla: cada número en esa columna es un producto (una fila).
+// 3) Todo texto cuya altura cae en la franja de esa fila se asigna a la columna más cercana; los trozos partidos
+//    se unen (códigos sin espacio, descripciones con espacio). Ignora todo lo que está encima de los títulos
+//    (RUC, No. de factura, autorización, fechas) y corta en SUBTOTAL / VALOR TOTAL.
+async function extraerItemsPDF(payload) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const bytes = Uint8Array.from(atob(payload.data), c => c.charCodeAt(0));
+  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const KEYS = [['codigo', /principal/i], ['aux', /auxiliar/i], ['cantidad', /^cantidad|^cant\.?$/i], ['descripcion', /descripci/i], ['detalle', /detalle/i],
+    ['pu', /unitario|p\.?\s*unit/i], ['subsidio', /^subsidio$/i], ['psin', /precio\s+sin/i], ['descuento', /descuento|dcto/i], ['total', /precio\s+total|^total$|^p\.?\s*total/i]];
+  const toN = x => { let t = String(x).replace(/[^\d,.\-]/g, ''); if (!t) return null; if (t.indexOf(',') >= 0 && t.indexOf('.') >= 0) t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, ''); else t = t.replace(',', '.'); const n = parseFloat(t); return isNaN(n) ? null : n; };
+  const items = [], textoLineas = [];
+  let cols = null, terminado = false;
+
+  for (let pg = 1; pg <= pdf.numPages && !terminado; pg++) {
+    const page = await pdf.getPage(pg); const tc = await page.getTextContent();
+    const cells = tc.items.filter(it => it.str.trim()).map(it => ({ x: it.transform[4], y: it.transform[5], w: it.width || 0, h: it.height || 8, s: it.str.trim() }));
+    cells.sort((a, b) => b.y - a.y || a.x - b.x);
+    cells.forEach(c => textoLineas.push(c.s));
+
+    // --- banda de títulos: la celda "Descripción" y todo título a ±14 pt de altura
+    const dIdx = cells.findIndex(c => /descripci/i.test(c.s));
+    let yHdrTop = Infinity, yHdrBot = -Infinity;
+    if (dIdx >= 0) {
+      const yd = cells[dIdx].y;
+      const band = cells.filter(c => Math.abs(c.y - yd) <= 11 && /[a-záéíóúñ]/i.test(c.s) && !/\d{3,}/.test(c.s)); // solo textos de título, no datos
+      const found = {};
+      band.forEach(c => KEYS.forEach(([k, re]) => { if (found[k] === undefined && re.test(c.s)) found[k] = c.x + c.w / 2; }));
+      if (found.cantidad !== undefined && found.descripcion !== undefined) {
+        cols = found;
+        yHdrTop = Math.max(...band.map(c => c.y)); yHdrBot = Math.min(...band.map(c => c.y));
+      }
+    }
+    if (!cols) continue; // en esta página no hay tabla (o todavía no la encontramos)
+    const centros = Object.keys(cols).map(k => ({ k, x: cols[k] }));
+    const colDe = c => { const cx = c.x + c.w / 2; let best = centros[0]; centros.forEach(z => { if (Math.abs(z.x - cx) < Math.abs(best.x - cx)) best = z; }); return best.k; };
+
+    // --- zona de datos: debajo de los títulos, hasta SUBTOTAL / VALOR TOTAL
+    let data = cells.filter(c => c.y < yHdrBot - 2);
+    const finIdx = data.findIndex(c => /^(subtotal|total sin impuestos|informaci[oó]n adicional|forma de pago|valor total|iva\b|ice\b|propina|total a pagar)/i.test(c.s));
+    if (finIdx >= 0) { data = data.filter(c => c.y > data[finIdx].y + 2); terminado = true; }
+    // anclas = números en la columna Cantidad
+    const anclas = data.filter(c => colDe(c) === 'cantidad' && toN(c.s) !== null && /^\d/.test(c.s)).sort((a, b) => b.y - a.y);
+    if (!anclas.length) continue;
+    // franja vertical de cada fila: hasta la mitad de la distancia con la fila vecina (o ±14 pt en los extremos)
+    const filas = anclas.map((a, i) => {
+      const top = i === 0 ? a.y + 14 : (a.y + anclas[i - 1].y) / 2;
+      const bot = i === anclas.length - 1 ? a.y - 14 : (a.y + anclas[i + 1].y) / 2;
+      return { a, top, bot, celdas: {} };
+    });
+    data.forEach(c => {
+      const f = filas.find(f => c.y <= f.top && c.y > f.bot); if (!f) return;
+      const k = colDe(c); (f.celdas[k] = f.celdas[k] || []).push(c);
+    });
+    const unir = (arr, sinEspacio) => (arr || []).sort((p, q) => q.y - p.y || p.x - q.x).map(c => c.s).join(sinEspacio ? '' : ' ').trim();
+    filas.forEach(f => {
+      const cant = toN(f.a.s);
+      const codigo = unir(f.celdas.codigo, true).replace(/\s+/g, '');
+      const descripcion = unir(f.celdas.descripcion).replace(/\s+/g, ' ');
+      const pu = toN(unir(f.celdas.pu, true)), total = toN(unir(f.celdas.total, true));
+      if (!descripcion || !(cant > 0) || (pu === null && total === null)) return;
+      items.push({ codigo_proveedor: codigo, descripcion, cantidad: cant,
+        costo_empaque: pu !== null ? pu : Math.round(total / cant * 10000) / 10000,
+        costo_total: total !== null ? total : Math.round(pu * cant * 100) / 100,
+        unid_por_empaque: detectarUnidadesJS(descripcion) });
+    });
+  }
+  return { items, texto: textoLineas.join('\n') };
+}
+function detectarUnidadesJS(line) {
+  const m = /(?:\bx\s?(\d{1,3})\b)|(\d{1,3})\s?(?:pack|un(?:id(?:ades)?)?|u\b|pcs|pzas?|piezas?)|(?:paq(?:uete)?|caja|funda|display)\s?(?:de\s?)?(\d{1,3})/i.exec(String(line));
+  if (!m) return 1; const n = parseInt(m[1] || m[2] || m[3], 10); return n > 1 && n <= 500 ? n : 1;
+}
+function pegarTexto() {
+  modal(`<h3>Pegar texto de la factura</h3><p class="small muted">Pega el texto de la factura, o una lista JSON de productos (si te la preparó Claude): <code>[{"nombre":"…","categoria":"…","tier":"25c","unid_por_empaque":12,"empaques_comprados":2,"costo_empaque":3.5}]</code></p>
+    <textarea id="ptTxt" rows="10" placeholder="Pega aquí…"></textarea>
+    <div class="row" style="margin-top:12px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="procesarTexto()">Analizar</button></div>`);
+}
+async function procesarTexto() {
+  const t = $('ptTxt').value.trim(); if (!t) return;
+  closeModal();
+  if (t[0] === '[') {
+    try { const arr = JSON.parse(t); renderImport(arr.map(x => ({ descripcion: x.nombre, nombre: x.nombre, categoria: x.categoria, tier: x.tier, unid_por_empaque: x.unid_por_empaque || 1, cantidad: x.empaques_comprados || 1, costo_empaque: x.costo_empaque || 0, sku: x.sku || '' })), '', S.admin.facturaId || ''); return; }
+    catch (e) { return toast('JSON inválido: ' + e.message, 'err'); }
+  }
+  try { const r = await call('apiAdminParsearTexto', t); renderImport(r.items, t, S.admin.facturaId || ''); } catch (e) {}
+}
+async function renderImport(items, texto, facturaId) {
+  S.admin.impItems = (items || []).map(it => ({ nombre: it.nombre || it.descripcion || '', categoria: it.categoria || S.categorias[0], tier: it.tier || sugerirTier(it.costo_empaque, it.unid_por_empaque),
+    unid_por_empaque: it.unid_por_empaque || 1, empaques_comprados: it.cantidad || 1, costo_empaque: it.costo_empaque || 0, sku: it.sku || '',
+    codigo_proveedor: it.codigo_proveedor || '', incluir: true, existente: null }));
+  // ¿Cuáles ya existen en el catálogo (mismo código del proveedor o mismo nombre)? → autollenar SKU, categoría, precio y unid/emp
+  S.admin.proximoSku = '';
+  try {
+    const m = await gs('apiAdminMatchItems', S.admin.impItems.map(i => ({ nombre: i.nombre, codigo_proveedor: i.codigo_proveedor })));
+    S.admin.proximoSku = m.proximoSku || '';
+    m.matches.forEach((ex, i) => { if (!ex) return; const it = S.admin.impItems[i]; it.existente = ex; it.sku = ex.sku; it.categoria = ex.categoria || it.categoria; it.tier = ex.tier || it.tier; if (ex.unid_por_empaque > 1) it.unid_por_empaque = ex.unid_por_empaque; });
+  } catch (e) { /* sin match: se tratan como nuevos */ }
+  $('fxResult').innerHTML = `<div class="card"><h3>Revisar artículos ${facturaId ? '<span class="small muted">' + esc(facturaId) + '</span>' : ''}</h3>
+    <p class="small muted" style="margin-top:0">Corrige lo que haga falta. <b>Unid/emp</b> = cuántas unidades vienen en cada empaque comprado (funda, caja). <b>Emp.</b> = empaques comprados (Cantidad de la factura). Stock = Emp × Unid/emp. Las filas marcadas <span class="badge cruzada">existente</span> ya están en el catálogo (mismo Cod. Principal o nombre): conservan su SKU y solo suman stock y actualizan costo. Las nuevas reciben el siguiente SKU (${esc(S.admin.proximoSku || 'PMV-TIEN-…')}) al importar.</p>
+    <div class="tbl"><table class="imp"><thead><tr><th>✓</th><th>Producto</th><th>Categoría</th><th>Precio venta</th><th>Unid/emp</th><th>Emp. (Cant.)</th><th>Costo emp. $</th><th>Costo u.</th></tr></thead><tbody id="impBody"></tbody></table></div>
+    <div class="row" style="margin-top:10px"><button class="sec small" onclick="impAdd()">＋ Fila</button><span class="small muted" id="impSum"></span></div>
+    <div class="row" style="margin-top:12px"><button onclick="importar('${esc(facturaId)}')">Importar al catálogo</button></div>
+    ${texto ? `<details style="margin-top:10px"><summary class="small muted">Ver texto leído</summary><pre class="small" style="white-space:pre-wrap">${esc(texto)}</pre></details>` : ''}</div>`;
+  renderImpRows();
+  $('fxResult').scrollIntoView({ behavior: 'smooth' });
+}
+// Precio de venta sugerido según el costo unitario (se puede cambiar en la tabla)
+function sugerirTier(costoEmp, unidEmp) {
+  const cu = (+costoEmp || 0) / Math.max(1, +unidEmp || 1);
+  if (!cu) return '25c';
+  return cu <= 0.09 ? '2x25c' : cu <= 0.2 ? '25c' : cu <= 0.42 ? '50c' : '1$';
+}
+function renderImpRows() {
+  $('impBody').innerHTML = S.admin.impItems.map((it, i) => `<tr id="imp_tr_${i}" style="${it.incluir ? '' : 'opacity:.4'}">
+    <td><input type="checkbox" style="width:auto" ${it.incluir ? 'checked' : ''} onchange="impSet(${i},'incluir',this.checked)"></td>
+    <td><input class="w" value="${esc(it.nombre)}" onchange="impSet(${i},'nombre',this.value)"><div class="row" style="margin-top:4px"><input value="${esc(it.sku)}" placeholder="SKU (auto)" style="min-width:110px" ${it.existente ? 'readonly' : ''} onchange="impSet(${i},'sku',this.value)"><input value="${esc(it.codigo_proveedor)}" placeholder="Cód. proveedor" style="min-width:110px" onchange="impSet(${i},'codigo_proveedor',this.value)"></div>
+      ${it.existente ? `<div class="small" style="margin-top:3px"><span class="badge cruzada">existente</span> stock actual ${it.existente.stock} · se sumarán ${it.unid_por_empaque * it.empaques_comprados} u.</div>` : '<div class="small muted" style="margin-top:3px">nuevo</div>'}</td>
+    <td><select onchange="impSet(${i},'categoria',this.value)">${S.categorias.map(c => `<option ${c === it.categoria ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></td>
+    <td><select onchange="impSet(${i},'tier',this.value)">${S.tiers.map(t => `<option value="${esc(t.key)}" ${t.key === it.tier ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select></td>
+    <td><input type="number" min="1" value="${it.unid_por_empaque}" onchange="impSet(${i},'unid_por_empaque',+this.value)"></td>
+    <td><input type="number" min="0" value="${it.empaques_comprados}" onchange="impSet(${i},'empaques_comprados',+this.value)"></td>
+    <td><input type="number" step="0.01" value="${it.costo_empaque}" onchange="impSet(${i},'costo_empaque',+this.value)"></td>
+    <td class="small b" id="imp_cu_${i}">${money(it.unid_por_empaque ? it.costo_empaque / it.unid_por_empaque : 0)}</td></tr>`).join('');
+  impResumen();
+}
+function impResumen() {
+  const inc = S.admin.impItems.filter(i => i.incluir);
+  $('impSum').textContent = inc.length + ' artículos · ' + inc.reduce((s, i) => s + i.unid_por_empaque * i.empaques_comprados, 0) + ' unidades · costo ' + money(inc.reduce((s, i) => s + i.costo_empaque * i.empaques_comprados, 0));
+}
+// Actualiza solo el dato editado (sin redibujar la tabla → no se pierde el foco al pasar de una celda a otra)
+function impSet(i, k, v) {
+  const it = S.admin.impItems[i]; it[k] = v;
+  const cu = $('imp_cu_' + i); if (cu) cu.textContent = money(it.unid_por_empaque ? it.costo_empaque / it.unid_por_empaque : 0);
+  const tr = $('imp_tr_' + i); if (tr) tr.style.opacity = it.incluir ? '' : '.4';
+  impResumen();
+}
+function impAdd() { S.admin.impItems.push({ nombre: '', categoria: S.categorias[0], tier: '25c', unid_por_empaque: 1, empaques_comprados: 1, costo_empaque: 0, sku: '', incluir: true }); renderImpRows(); }
+async function importar(facturaId) {
+  const items = S.admin.impItems.filter(i => i.incluir && i.nombre.trim());
+  if (!items.length) return toast('No hay artículos marcados', 'err');
+  if (!confirm('¿Importar ' + items.length + ' artículos al catálogo y sumar su stock?')) return;
+  try {
+    const r = await call('apiAdminImportarItems', facturaId, items);
+    toast('✅ ' + r.nuevos + ' nuevos, ' + r.actualizados + ' actualizados', 'ok');
+    $('fxResult').innerHTML = '';
+    if (r.imgAuto && r.skusNuevos && r.skusNuevos.length) await autoFotos(r.skusNuevos);
+    S.catalogo = await gs('apiCatalogo'); renderGrid(); aFactura();
+  } catch (e) {}
+}
+
+/* --- Reportes --- */
+async function aReportes(dias) {
+  dias = dias || S.admin.dias || 30; S.admin.dias = dias;
+  try {
+    const r = await call('apiAdminReportes', dias);
+    const bars = (arr, lk, vk, fmt) => { const mx = Math.max(...arr.map(a => a[vk]), 0.01); return arr.map(a => `<div class="bar"><div class="lbl" title="${esc(a[lk])}">${esc(a[lk])}</div><div class="trk"><div class="fil" style="width:${Math.round(a[vk] / mx * 100)}%"></div></div><div class="val">${fmt(a[vk])}</div></div>`).join('') || '<div class="empty">Sin datos</div>'; };
+    $('a-reportes').innerHTML = `<div class="chips">${[7, 30, 90, 365].map(d => `<button class="chip ${d === dias ? 'on' : ''}" onclick="aReportes(${d})">${d} días</button>`).join('')}</div>
+      <div class="kpis">
+        <div class="kpi"><div class="v">${money(r.totalVentas)}</div><div class="l">Ventas (${r.numVentas} compras, ${r.unidades} u.)</div></div>
+        <div class="kpi"><div class="v">${money(r.recargasPeriodo)}</div><div class="l">Recargas aprobadas</div></div>
+        <div class="kpi"><div class="v">${money(r.saldoTotal)}</div><div class="l">Saldo total en cuentas</div></div>
+        <div class="kpi"><div class="v">${money(r.valorInventarioVenta)}</div><div class="l">Inventario a precio venta</div></div>
+        <div class="kpi"><div class="v">${money(r.valorInventarioCosto)}</div><div class="l">Inventario a costo</div></div></div>
+      <div class="card" style="margin-top:12px"><h3>Ventas por día</h3>${bars(r.porDia, 'dia', 'total', money)}</div>
+      <div class="card"><h3>Ventas por categoría</h3>${bars(r.porCategoria, 'categoria', 'total', money)}</div>
+      <div class="card"><h3>Top productos (unidades)</h3>${bars(r.topProductos, 'nombre', 'unidades', v => v + ' u')}</div>
+      <div class="card"><h3>Top compradores</h3>${bars(r.topUsuarios, 'email', 'total', money)}</div>
+      <div class="card"><h3>Saldos por usuario</h3><div class="tbl"><table><tbody>${r.saldos.map(u => `<tr><td>${esc(u.nombre)}<div class="small muted">${esc(u.email)}</div></td><td class="right b">${money(u.saldo)}</td></tr>`).join('')}</tbody></table></div></div>
+      <p class="small muted">Para exportar: la hoja de Google Sheets es la base de datos completa (pestañas Ventas, Movimientos, Recargas).</p>`;
+  } catch (e) {}
+}
+
+$('lgPin').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+$('rgCodigo').addEventListener('keydown', e => { if (e.key === 'Enter') doRegistro(); });
+boot();
+</script>
+</body>
+</html>
