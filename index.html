@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v13.html (GitHub Pages) — espera Motor API v11. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v14.html (GitHub Pages) — espera Motor API v12. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -205,7 +205,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 11;
+const EXPECTED_API = 12;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -386,7 +386,7 @@ function renderGrid() {
       <div class="cat">${esc(p.categoria)}</div>
       <div class="nm">${esc(p.nombre)}</div>
       <div class="pr">${esc(tierLabel(p.tier))}${p.step > 1 ? ' <span class="small muted">(en pares)</span>' : ''}</div>
-      <div class="stk ${p.stock <= 5 ? 'low' : ''}">${out ? 'Agotado' : 'Quedan ' + p.stock}</div>
+      <div class="stk ${p.stock <= 5 ? 'low' : ''}">${out ? 'Agotado en percha' : 'Quedan ' + p.stock}</div>
       <div class="qty">
         <button onclick="addCart('${esc(p.sku)}',-1)" ${q === 0 ? 'disabled' : ''}>−</button><span>${q}</span>
         <button class="add" onclick="addCart('${esc(p.sku)}',1)" ${out || q + p.step > p.stock ? 'disabled' : ''}>+</button>
