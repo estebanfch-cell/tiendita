@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v14.html (GitHub Pages) — espera Motor API v12. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v17.html (GitHub Pages) — espera Motor API v15. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -146,7 +146,7 @@ a{color:var(--brand)}
   <section id="v-recargar" class="hide">
     <div class="card">
       <h3>💵 Recargar saldo</h3>
-      <p class="small muted" style="margin-top:0">Transfiere o deposita el dinero y sube la foto del comprobante. <b>Tu saldo se acredita al instante</b> y puedes comprar de inmediato; luego el administrador lo cruza con el estado de cuenta del banco. Si el pago no aparece en el banco, la recarga se reversa.</p>
+      <p class="small muted" style="margin-top:0">Transfiere o deposita el dinero y sube la foto del comprobante (la fecha y hora se registran automáticamente). <b>Tu saldo se acredita al instante</b>; luego el administrador lo cruza con el estado de cuenta del banco. Si el pago no aparece en el banco, la recarga se reversa.</p>
       <label>Monto ($)</label>
       <input id="recMonto" type="number" inputmode="decimal" step="0.25" min="1" placeholder="Ej: 5.00">
       <div class="chips" style="margin-top:6px"><button class="chip" onclick="setMonto(2)">$2</button><button class="chip" onclick="setMonto(5)">$5</button><button class="chip" onclick="setMonto(10)">$10</button><button class="chip" onclick="setMonto(20)">$20</button></div>
@@ -156,8 +156,6 @@ a{color:var(--brand)}
         <input id="recFile" type="file" accept="image/*,application/pdf" onchange="previewFile(this,'recPrev','recFileTxt')">
         <img id="recPrev" class="thumb hide" alt="">
       </div>
-      <label>Fecha y hora en que hiciste el pago (la del comprobante)</label>
-      <input id="recFecha" type="datetime-local">
       <label>Nota (opcional)</label>
       <input id="recNota" placeholder="Ej: transferencia Banco Pichincha 14/09">
       <div style="margin-top:14px"><button id="recBtn" style="width:100%" onclick="enviarRecarga()" disabled>Adjunta el comprobante para continuar</button></div>
@@ -205,7 +203,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 12;
+const EXPECTED_API = 15;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -358,7 +356,7 @@ function showView(v) {
   ['tienda', 'historial', 'recargar', 'admin'].forEach(x => $('v-' + x).classList.toggle('hide', x !== v));
   $('cartbar').classList.toggle('hide', v !== 'tienda' || cartCount() === 0);
   if (v === 'historial') loadHistorial();
-  if (v === 'recargar') { if (!$('recFecha').value) setRecFechaNow(); loadMisRecargas(); }
+  if (v === 'recargar') loadMisRecargas();
   if (v === 'admin') adminShow(S.admin.sub || 'resumen');
 }
 
@@ -460,7 +458,6 @@ async function loadHistorial() {
 
 /* ===================== RECARGAR ===================== */
 function setMonto(v) { $('recMonto').value = v.toFixed(2); }
-function setRecFechaNow() { const d = new Date(); d.setSeconds(0, 0); const off = d.getTimezoneOffset(); const l = new Date(d.getTime() - off * 60000); $('recFecha').value = l.toISOString().slice(0, 16); }
 let recFileData = null;
 async function previewFile(input, imgId, txtId) {
   const f = input.files[0]; if (!f) return;
@@ -500,9 +497,8 @@ async function enviarRecarga() {
   const payload = $('recFile')._payload;
   if (!payload) return toast('Adjunta el comprobante de pago', 'err');
   try {
-    const fechaPago = $('recFecha').value ? new Date($('recFecha').value).toISOString() : '';
     loading(true, 'Leyendo el comprobante y registrando la recarga… (10-30 s)');
-    const r = await gs('apiSolicitarRecarga', monto, payload, $('recNota').value, fechaPago);
+    const r = await gs('apiSolicitarRecarga', monto, payload, $('recNota').value, '');
     loading(false);
     if (r.estado === 'preaprobada') setSaldo(r.saldo);
     const c = r.comprobante || {};
@@ -513,7 +509,7 @@ async function enviarRecarga() {
       ${(c.alertas || []).length ? `<div class="small" style="color:var(--warn);margin-top:8px">⚠ ${c.alertas.map(esc).join('<br>⚠ ')}</div>` : ''}
       <p class="small muted" style="margin-top:10px">${r.estado === 'preaprobada' ? 'Ya puedes comprar. La recarga se confirmará cuando el administrador la cruce con el banco.' : 'Se acreditará cuando el administrador la apruebe.'}</p>
       <div style="margin-top:12px"><button style="width:100%" onclick="closeModal();showView('tienda')">Ir a la tienda</button></div>`);
-    $('recMonto').value = ''; $('recNota').value = ''; $('recFile').value = ''; $('recFile')._payload = null; setRecFechaNow();
+    $('recMonto').value = ''; $('recNota').value = ''; $('recFile').value = ''; $('recFile')._payload = null;
     $('recFileTxt').textContent = '📷 Toca para tomar foto o elegir archivo'; $('recPrev').classList.add('hide');
     $('recBtn').disabled = true; $('recBtn').textContent = 'Adjunta el comprobante para continuar';
     loadMisRecargas();
@@ -761,7 +757,18 @@ async function aRestock() {
   try {
     const r = await call('apiAdminRestock'); S.admin.restock = r;
     const c = r.config;
-    $('a-restock').innerHTML = `<p class="small muted" style="margin:0 0 10px">Flujo: la mercadería nueva entra a <b>bodega</b>; aquí ves cuánto sacar a percha para tener <b>${Math.round(c.fraccion_percha * 100)}%</b> del stock afuera (Config → FRACCION_PERCHA). El consumo semanal se calcula con las ventas de las últimas <b>${c.semanas_historial}</b> semanas; la recompra busca cubrir <b>${c.semanas_cobertura}</b> semanas (Config → SEMANAS_COBERTURA). El objetivo de percha y el mínimo se ajustan por producto en Catálogo → ✏️.</p>
+    const R = r.recomendaciones || { comprarMas: [], comprarMenos: [], noRecomprar: [], sinDatos: [], top: [] };
+    $('a-restock').innerHTML = `<div class="card" style="padding:10px 14px"><div class="row wrap"><div class="small"><b>📊 Análisis automático</b> · último cálculo: ${esc(r.ultimoAnalisis || 'aún no corrió')} · ${r.triggerActivo ? '⏱ se recalcula cada hora' : '<span style="color:var(--warn)">⚠ trigger horario no instalado (corre setupTiendita)</span>'}</div><button class="small sec" style="flex:0 0 auto" onclick="recalcular()">🔄 Recalcular ahora</button></div>
+      <p class="small muted" style="margin:6px 0 0">Mínimo dinámico = consumo diario × <b>${c.minimo}</b> días (Config → DIAS_MINIMO). Objetivo de percha = máx(¼ del stock, consumo × <b>${c.percha}</b> días). Recompra sugerida para cubrir <b>${c.compra}</b> días. Si fijas un mínimo u objetivo manual en Catálogo → ✏️, ese manda. La mercadería nueva entra a bodega y aquí ves cuánto pasar a percha.</p></div>
+      <div class="card"><h3>🧭 Recomendaciones de compra</h3>
+        <div class="kpis"><div class="kpi"><div class="v" style="color:var(--danger)">${R.comprarMas.length}</div><div class="l">Comprar más (bajo mínimo)</div></div>
+          <div class="kpi"><div class="v" style="color:var(--warn)">${R.comprarMenos.length}</div><div class="l">Comprar menos (sobre-stock)</div></div>
+          <div class="kpi"><div class="v">${R.noRecomprar.length}</div><div class="l">No recomprar (no rota)</div></div>
+          <div class="kpi"><div class="v" style="color:var(--ok)">${R.top.length}</div><div class="l">⭐ Top rotación</div></div></div>
+        ${R.top.length ? `<div class="small" style="margin-top:10px"><b>⭐ Lo que más se vende (15 días):</b> ${R.top.map(t => esc(t.nombre) + ' (' + t.ventas_15d + ' u.)').join(' · ')}</div>` : ''}
+        ${R.comprarMenos.length ? `<div class="small" style="margin-top:6px"><b>Comprar menos:</b> ${R.comprarMenos.map(t => esc(t.nombre) + ' (cubre ' + t.dias_cobertura + ' d)').join(' · ')}</div>` : ''}
+        ${R.noRecomprar.length ? `<div class="small" style="margin-top:6px"><b>No recomprar:</b> ${R.noRecomprar.map(t => esc(t.nombre) + (t.ultima_venta ? ' (última venta ' + esc(t.ultima_venta) + ')' : ' (nunca vendido)')).join(' · ')}</div>` : ''}
+        ${R.sinDatos.length ? `<div class="small muted" style="margin-top:6px">${R.sinDatos.length} producto(s) nuevos sin historial todavía.</div>` : ''}</div>
       <div class="card"><h3>🔄 Restock interno — sacar de bodega a percha</h3>
         ${r.interno.length ? `<div class="tbl"><table><thead><tr><th>✓</th><th>Producto</th><th class="right">Percha</th><th class="right">Objetivo</th><th class="right">Bodega</th><th class="right">Sacar</th></tr></thead><tbody>
           ${r.interno.map((it, i) => `<tr><td><input type="checkbox" class="rsChk" data-i="${i}" ${it.mover > 0 ? 'checked' : 'disabled'} style="width:auto"></td>
@@ -770,7 +777,7 @@ async function aRestock() {
             <td class="right"><input type="number" min="0" max="${it.bodega}" value="${it.mover}" id="rsMov_${i}" style="width:70px;padding:6px 8px"></td></tr>`).join('')}</tbody></table></div>
           <div class="row" style="margin-top:10px"><button class="sec" onclick="imprimirLista('interno')">🖨️ Lista para bodega</button><button onclick="aplicarRestock()">✅ Aplicar traslados marcados</button></div>`
         : '<div class="empty">La percha está completa en todos los productos. 👌</div>'}</div>
-      <div class="card"><h3>🛒 Restock externo — recompra</h3>
+      <div class="card"><h3>🛒 Restock externo — recompra (bajo mínimo dinámico)</h3>
         ${r.externo.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="right">Stock</th><th class="right">Mín.</th><th class="right">Vende/sem</th><th class="right">Cobertura</th><th class="right">Comprar</th></tr></thead><tbody>
           ${r.externo.map(it => `<tr><td><div class="b">${esc(it.nombre)}</div><div class="small muted">${esc(it.sku)} · ${esc(it.motivo)}</div></td>
             <td class="right b" style="color:${it.bajo_minimo ? 'var(--danger)' : 'inherit'}">${it.stock}</td><td class="right">${it.minimo}</td><td class="right">${it.consumo_semanal}</td>
@@ -778,10 +785,11 @@ async function aRestock() {
             <td class="right"><b>${it.empaques_sugeridos}</b> emp.<div class="small muted">= ${it.empaques_sugeridos * it.unid_por_empaque} u. · ${money(it.costo_estimado)}</div></td></tr>`).join('')}</tbody></table></div>
           <div class="row" style="margin-top:10px"><span class="b">Costo estimado de la recompra: ${money(r.costoRecompra)}</span><button class="sec" onclick="imprimirLista('externo')">🖨️ Lista de compras</button></div>`
         : '<div class="empty">Nada por recomprar por ahora.</div>'}</div>
-      <div class="card"><h3>Estado por producto</h3><div class="tbl"><table><thead><tr><th>Producto</th><th class="right">Percha</th><th class="right">Bodega</th><th class="right">Total</th><th class="right">Vende/sem</th><th class="right">Cobertura</th></tr></thead><tbody>
-        ${r.todos.map(it => `<tr><td>${esc(it.nombre)}<div class="small muted">${esc(it.sku)}</div></td><td class="right">${it.percha}<span class="small muted">/${it.objetivo}</span></td><td class="right">${it.bodega}</td><td class="right b">${it.stock}</td><td class="right">${it.consumo_semanal}</td><td class="right">${it.semanas_cobertura === null ? '—' : it.semanas_cobertura + ' sem'}</td></tr>`).join('')}</tbody></table></div></div>`;
+      <div class="card"><h3>Estado por producto (ordenado por rotación)</h3><div class="tbl"><table><thead><tr><th>#</th><th>Producto</th><th class="right">Percha</th><th class="right">Bodega</th><th class="right">Total</th><th class="right">Vende/día</th><th class="right">Mínimo</th><th class="right">Cubre</th><th>Recomendación</th></tr></thead><tbody>
+        ${r.todos.map(it => `<tr><td class="small muted">${it.rank_rotacion}${it.top ? ' ⭐' : ''}</td><td>${esc(it.nombre)}<div class="small muted">${esc(it.sku)}</div></td><td class="right">${it.percha}<span class="small muted">/${it.objetivo}</span></td><td class="right">${it.bodega}</td><td class="right b">${it.stock}</td><td class="right">${it.consumo_diario}</td><td class="right">${it.minimo}${it.minimo_manual !== null && it.minimo_manual !== undefined ? '<span class="small muted"> (manual)</span>' : ''}</td><td class="right">${it.dias_cobertura === null ? '—' : it.dias_cobertura + ' d'}</td><td><span class="badge ${it.recomendacion === 'COMPRAR MÁS' ? 'rechazada' : it.recomendacion === 'COMPRAR MENOS' ? 'pendiente' : it.recomendacion === 'MANTENER' ? 'cruzada' : 'descartado'}">${esc(it.recomendacion)}</span><div class="small muted">${esc(it.motivo || '')}</div></td></tr>`).join('')}</tbody></table></div></div>`;
   } catch (e) {}
 }
+async function recalcular() { try { const r = await call('apiAdminRecalcularAnalisis'); toast('📊 Análisis recalculado (' + r.productos + ' productos)', 'ok'); aRestock(); } catch (e) {} }
 async function aplicarRestock() {
   const r = S.admin.restock; const items = [];
   document.querySelectorAll('.rsChk:checked').forEach(ch => { const i = +ch.dataset.i; const u = +$('rsMov_' + i).value; if (u > 0) items.push({ sku: r.interno[i].sku, unidades: u }); });
@@ -1120,11 +1128,19 @@ async function renderImport(items, texto, facturaId) {
     unid_por_empaque: it.unid_por_empaque || 1, empaques_comprados: it.cantidad || 1, costo_empaque: it.costo_empaque || 0, sku: it.sku || '',
     codigo_proveedor: it.codigo_proveedor || '', incluir: true, existente: null }));
   // ¿Cuáles ya existen en el catálogo (mismo código del proveedor o mismo nombre)? → autollenar SKU, categoría, precio y unid/emp
-  S.admin.proximoSku = '';
+  S.admin.proximoSku = ''; S.admin.productosLista = [];
   try {
     const m = await gs('apiAdminMatchItems', S.admin.impItems.map(i => ({ nombre: i.nombre, codigo_proveedor: i.codigo_proveedor })));
-    S.admin.proximoSku = m.proximoSku || '';
+    S.admin.proximoSku = m.proximoSku || ''; S.admin.productosLista = m.productos || [];
     m.matches.forEach((ex, i) => { if (!ex) return; const it = S.admin.impItems[i]; it.existente = ex; it.sku = ex.sku; it.categoria = ex.categoria || it.categoria; it.tier = ex.tier || it.tier; if (ex.unid_por_empaque > 1) it.unid_por_empaque = ex.unid_por_empaque; });
+    // equivalencias recordadas: reemplaza la fila de la factura por su(s) producto(s) de venta
+    const nuevos = [];
+    S.admin.impItems.forEach((it, i) => {
+      const eq = m.equivalencias && m.equivalencias[i];
+      if (!eq || !eq.length) { nuevos.push(it); return; }
+      nuevos.push(...expandirFila(it, eq.map(d => ({ sku: d.sku, nombre: d.nombre, unidades: d.unidades, existente: d.existente })), true));
+    });
+    S.admin.impItems = nuevos;
   } catch (e) { /* sin match: se tratan como nuevos */ }
   $('fxResult').innerHTML = `<div class="card"><h3>Revisar artículos ${facturaId ? '<span class="small muted">' + esc(facturaId) + '</span>' : ''}</h3>
     <p class="small muted" style="margin-top:0">Corrige lo que haga falta. <b>Unid/emp</b> = cuántas unidades vienen en cada empaque comprado (funda, caja). <b>Emp.</b> = empaques comprados (Cantidad de la factura). Stock = Emp × Unid/emp. Las filas marcadas <span class="badge cruzada">existente</span> ya están en el catálogo (mismo Cod. Principal o nombre): conservan su SKU y solo suman stock y actualizan costo. Las nuevas reciben el siguiente SKU (${esc(S.admin.proximoSku || 'PMV-TIEN-…')}) al importar.</p>
@@ -1141,11 +1157,23 @@ function sugerirTier(costoEmp, unidEmp) {
   if (!cu) return '25c';
   return cu <= 0.09 ? '2x25c' : cu <= 0.2 ? '25c' : cu <= 0.42 ? '50c' : '1$';
 }
+// Convierte una fila de factura en 1..N filas de productos de venta (alias o desglose), prorrateando el costo por unidades
+function expandirFila(it, destinos, recordado) {
+  const totalUnid = destinos.reduce((s, d) => s + (+d.unidades || 1), 0) || 1;
+  return destinos.map(d => {
+    const u = Math.max(1, +d.unidades || 1); const ex = d.existente || null;
+    return { nombre: ex ? ex.nombre : d.nombre, sku: ex ? ex.sku : (d.sku || ''), categoria: ex ? ex.categoria : it.categoria, tier: ex ? ex.tier : it.tier,
+      unid_por_empaque: u, empaques_comprados: it.empaques_comprados, costo_empaque: Math.round(it.costo_empaque * (u / totalUnid) * 10000) / 10000,
+      codigo_proveedor: destinos.length === 1 ? it.codigo_proveedor : '', incluir: true, existente: ex,
+      origen: { nombre: it.nombre, codigo_proveedor: it.codigo_proveedor, recordado: !!recordado, tipo: destinos.length > 1 ? 'desglose' : 'alias' } };
+  });
+}
 function renderImpRows() {
   $('impBody').innerHTML = S.admin.impItems.map((it, i) => `<tr id="imp_tr_${i}" style="${it.incluir ? '' : 'opacity:.4'}">
     <td><input type="checkbox" style="width:auto" ${it.incluir ? 'checked' : ''} onchange="impSet(${i},'incluir',this.checked)"></td>
     <td><input class="w" value="${esc(it.nombre)}" onchange="impSet(${i},'nombre',this.value)"><div class="row" style="margin-top:4px"><input value="${esc(it.sku)}" placeholder="SKU (auto)" style="min-width:110px" ${it.existente ? 'readonly' : ''} onchange="impSet(${i},'sku',this.value)"><input value="${esc(it.codigo_proveedor)}" placeholder="Cód. proveedor" style="min-width:110px" onchange="impSet(${i},'codigo_proveedor',this.value)"></div>
-      ${it.existente ? `<div class="small" style="margin-top:3px"><span class="badge cruzada">existente</span> stock actual ${it.existente.stock} · se sumarán ${it.unid_por_empaque * it.empaques_comprados} u.</div>` : '<div class="small muted" style="margin-top:3px">nuevo</div>'}</td>
+      ${it.existente ? `<div class="small" style="margin-top:3px"><span class="badge cruzada">existente</span> stock actual ${it.existente.stock} · se sumarán ${it.unid_por_empaque * it.empaques_comprados} u.</div>` : '<div class="small muted" style="margin-top:3px">nuevo</div>'}
+      ${it.origen ? `<div class="small muted">↳ ${it.origen.tipo === 'desglose' ? 'desglose de' : 'se vende como; viene de'} "${esc(it.origen.nombre)}"${it.origen.recordado ? ' · equivalencia recordada' : ''}</div>` : `<div style="margin-top:3px"><button class="small sec" onclick="equivalencia(${i})">✂️ Vender como / Desglosar</button></div>`}</td>
     <td><select onchange="impSet(${i},'categoria',this.value)">${S.categorias.map(c => `<option ${c === it.categoria ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></td>
     <td><select onchange="impSet(${i},'tier',this.value)">${S.tiers.map(t => `<option value="${esc(t.key)}" ${t.key === it.tier ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select></td>
     <td><input type="number" min="1" value="${it.unid_por_empaque}" onchange="impSet(${i},'unid_por_empaque',+this.value)"></td>
@@ -1159,6 +1187,41 @@ function impResumen() {
   $('impSum').textContent = inc.length + ' artículos · ' + inc.reduce((s, i) => s + i.unid_por_empaque * i.empaques_comprados, 0) + ' unidades · costo ' + money(inc.reduce((s, i) => s + i.costo_empaque * i.empaques_comprados, 0));
 }
 // Actualiza solo el dato editado (sin redibujar la tabla → no se pierde el foco al pasar de una celda a otra)
+// Modal: una línea de factura → se vende como otro producto (alias) o se desglosa en varios (surtido)
+function equivalencia(i) {
+  const it = S.admin.impItems[i];
+  const opts = (sel) => `<option value="">— producto nuevo (escribe el nombre) —</option>` + (S.admin.productosLista || []).map(p => `<option value="${esc(p.sku)}" ${sel === p.sku ? 'selected' : ''}>${esc(p.nombre)} (${esc(p.sku)})</option>`).join('');
+  const fila = (n, d) => `<div class="row" style="margin-top:6px" id="eqRow${n}"><select style="flex:2" onchange="$('eqNom${n}').style.display=this.value?'none':''">${opts(d.sku)}</select><input id="eqNom${n}" placeholder="Nombre nuevo" value="${esc(d.nombre || '')}" style="flex:2;${d.sku ? 'display:none' : ''}"><input type="number" min="1" value="${d.unidades || 1}" placeholder="unid." style="flex:0 0 70px" title="Unidades de este producto por cada empaque comprado"></div>`;
+  modal(`<h3>✂️ "${esc(it.nombre)}"</h3>
+    <p class="small muted">Cada empaque comprado (${it.empaques_comprados} en esta factura, ${money(it.costo_empaque)} c/u) se convierte en los productos de abajo. <b>Unid.</b> = cuántas unidades de ese producto trae cada empaque. Un solo destino = "se vende como"; varios = desglose (ej. surtido: 2 chocolate, 2 fresa, 2 vainilla). El costo se prorratea.</p>
+    <div id="eqRows">${fila(0, { sku: '', nombre: it.nombre, unidades: it.unid_por_empaque })}</div>
+    <div style="margin-top:8px"><button class="small sec" onclick="eqAdd()">＋ Otro producto</button></div>
+    <label class="row" style="margin-top:12px"><input type="checkbox" id="eqRecordar" checked style="width:auto;flex:0"> <span class="small">Recordar: aplicar automáticamente cuando vuelva a venir "${esc(it.nombre)}"${it.codigo_proveedor ? ' (cód. ' + esc(it.codigo_proveedor) + ')' : ''}</span></label>
+    <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="aplicarEquivalencia(${i})">Aplicar</button></div>`);
+  S.admin.eqN = 1;
+}
+function eqAdd() {
+  const n = S.admin.eqN++;
+  const opts = `<option value="">— producto nuevo (escribe el nombre) —</option>` + (S.admin.productosLista || []).map(p => `<option value="${esc(p.sku)}">${esc(p.nombre)} (${esc(p.sku)})</option>`).join('');
+  $('eqRows').insertAdjacentHTML('beforeend', `<div class="row" style="margin-top:6px" id="eqRow${n}"><select style="flex:2" onchange="$('eqNom${n}').style.display=this.value?'none':''">${opts}</select><input id="eqNom${n}" placeholder="Nombre nuevo" style="flex:2"><input type="number" min="1" value="1" style="flex:0 0 70px"></div>`);
+}
+async function aplicarEquivalencia(i) {
+  const it = S.admin.impItems[i]; const destinos = [];
+  document.querySelectorAll('#eqRows .row').forEach(r => {
+    const sel = r.querySelector('select'), nom = r.querySelector('input[type=text], input:not([type])'), un = r.querySelector('input[type=number]');
+    const sku = sel.value; const nombre = sku ? (S.admin.productosLista.find(p => p.sku === sku) || {}).nombre : nom.value.trim();
+    if (!nombre) return;
+    destinos.push({ sku, nombre, unidades: +un.value || 1, existente: sku ? (S.admin.impItems.find(x => x.sku === sku && x.existente) || {}).existente || { sku, nombre, categoria: it.categoria, tier: it.tier, stock: '?' } : null });
+  });
+  if (!destinos.length) return toast('Indica al menos un producto', 'err');
+  const recordar = $('eqRecordar').checked;
+  closeModal();
+  try {
+    if (recordar) await call('apiAdminGuardarEquivalencia', it.codigo_proveedor, it.nombre, destinos.map(d => ({ sku: d.sku, nombre: d.nombre, unidades: d.unidades })));
+    S.admin.impItems.splice(i, 1, ...expandirFila(it, destinos, recordar));
+    renderImpRows(); toast(destinos.length > 1 ? '✂️ Desglosado en ' + destinos.length + ' productos' : '✅ Se venderá como ' + destinos[0].nombre, 'ok');
+  } catch (e) {}
+}
 function impSet(i, k, v) {
   const it = S.admin.impItems[i]; it[k] = v;
   const cu = $('imp_cu_' + i); if (cu) cu.textContent = money(it.unid_por_empaque ? it.costo_empaque / it.unid_por_empaque : 0);
@@ -1193,6 +1256,12 @@ async function aReportes(dias) {
         <div class="kpi"><div class="v">${money(r.saldoTotal)}</div><div class="l">Saldo total en cuentas</div></div>
         <div class="kpi"><div class="v">${money(r.valorInventarioVenta)}</div><div class="l">Inventario a precio venta</div></div>
         <div class="kpi"><div class="v">${money(r.valorInventarioCosto)}</div><div class="l">Inventario a costo</div></div></div>
+      ${r.analisis ? `<div class="card" style="margin-top:12px"><h3>🧭 Recomendaciones de compra <span class="small muted">(análisis ${esc(r.analisis.ultimo || r.analisis.fecha)})</span></h3>
+        ${r.analisis.top.length ? `<div class="small"><b>⭐ Mejores productos (15 días):</b> ${r.analisis.top.map(t => esc(t.nombre) + ' · ' + t.ventas_15d + ' u. · ' + money(t.ingreso_15d)).join(' | ')}</div>` : '<div class="small muted">Aún no hay ventas suficientes para ranking.</div>'}
+        ${r.analisis.comprarMas.length ? `<div class="small" style="margin-top:8px;color:var(--danger)"><b>Comprar más:</b> ${r.analisis.comprarMas.map(t => esc(t.nombre) + ' (stock ' + t.stock + ' / mín ' + t.minimo + ' → ' + t.empaques + ' emp., ' + money(t.costo) + ')').join(' · ')}</div>` : ''}
+        ${r.analisis.comprarMenos.length ? `<div class="small" style="margin-top:8px;color:var(--warn)"><b>Comprar menos:</b> ${r.analisis.comprarMenos.map(t => esc(t.nombre) + ' (cubre ' + t.dias + ' d)').join(' · ')}</div>` : ''}
+        ${r.analisis.noRecomprar.length ? `<div class="small" style="margin-top:8px"><b>No recomprar (no rota):</b> ${r.analisis.noRecomprar.map(t => esc(t.nombre) + ' (stock ' + t.stock + ')').join(' · ')}</div>` : ''}
+        <details style="margin-top:8px"><summary class="small muted">Ver rotación completa</summary><div class="tbl"><table><thead><tr><th>Producto</th><th class="right">15 d</th><th class="right">30 d</th><th class="right">u/día</th><th class="right">Cubre</th><th>Rec.</th></tr></thead><tbody>${r.analisis.rotacion.map(t => `<tr><td>${t.top ? '⭐ ' : ''}${esc(t.nombre)}</td><td class="right">${t.v15}</td><td class="right">${t.v30}</td><td class="right">${t.consumo}</td><td class="right">${t.dias === null ? '—' : t.dias + ' d'}</td><td class="small">${esc(t.rec)}</td></tr>`).join('')}</tbody></table></div></details></div>` : ''}
       <div class="card" style="margin-top:12px"><h3>Ventas por día</h3>${bars(r.porDia, 'dia', 'total', money)}</div>
       <div class="card"><h3>Ventas por categoría</h3>${bars(r.porCategoria, 'categoria', 'total', money)}</div>
       <div class="card"><h3>Top productos (unidades)</h3>${bars(r.topProductos, 'nombre', 'unidades', v => v + ' u')}</div>
