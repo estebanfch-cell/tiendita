@@ -41,12 +41,14 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600}
 .chip.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:transparent}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.prod{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;grid-template-rows:auto 16px 3.75em 2.4em 1.6em 40px;row-gap:6px;align-items:start;box-shadow:0 1px 3px rgba(54,94,130,.06)}
+.prod{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;grid-template-rows:auto 16px 54px 34px 22px 40px;row-gap:6px;align-items:start;box-shadow:0 1px 3px rgba(54,94,130,.06)}
+.prod .imgbox{width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:linear-gradient(160deg,#f6f9fe,#e9f1fb)}
+.prod .imgbox .img,.prod .imgbox .noimg{width:100%;height:100%;aspect-ratio:auto;border-radius:0}
 /* filas fijas para que todas las tarjetas cuadren: foto · categoría · nombre (3 líneas) · precio · stock+cuadrante · botones */
-.prod .nm{font-weight:700;font-size:14px;line-height:1.25;height:3.75em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.prod .nm{font-weight:700;font-size:14px;line-height:18px;height:54px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .prod .cat{height:16px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prod .pr{height:2.4em;line-height:1.2;display:flex;align-items:flex-end;flex-wrap:wrap;gap:0 4px}
-.prod .stk{height:1.6em;line-height:1.6em;white-space:nowrap;overflow:hidden}
+.prod .pr{height:34px;line-height:17px;overflow:hidden;display:flex;align-items:flex-start;flex-wrap:wrap;gap:0 4px}
+.prod .stk{height:22px;line-height:22px;white-space:nowrap;overflow:hidden}
 .prod .qty{align-self:end}
 .prod .img{width:100%;aspect-ratio:1/1;object-fit:contain;border-radius:12px;background:linear-gradient(160deg,#f6f9fe,#e9f1fb);display:block}.prod .noimg{width:100%;aspect-ratio:1/1;border-radius:12px;background:linear-gradient(160deg,#f6f9fe,#e9f1fb);display:flex;align-items:center;justify-content:center;font-size:34px}
 .thumb-sm{width:44px;height:44px;object-fit:contain;border-radius:8px;background:#f3f4f6}
@@ -391,27 +393,12 @@ async function refrescarTienda(force) {
   try {
     const cat = await gs('apiCatalogo'); _tiendaTs = Date.now();
     const antes = S.catalogo; S.catalogo = cat;
-    if (tiendaVisible()) { patchGrid(antes); renderCartBar(); }
+    if (tiendaVisible()) { patchGrid(); renderCartBar(); }
   } catch (e) {} finally { _tiendaBusy = false; }
 }
 // Actualiza SOLO lo que cambió (stock, cuadrante, botones) sin reconstruir las tarjetas ni recargar fotos → sin parpadeo.
 // Si entra o sale un producto (o cambia nombre/precio/foto), ahí sí se redibuja la cuadrícula completa.
-function patchGrid(antes) {
-  const firma = p => [p.sku, p.nombre, p.categoria, p.tier, p.precio_unit].join('|');
-  const a = (antes || []).map(firma).sort().join('\n'), b = S.catalogo.map(firma).sort().join('\n');
-  if (a !== b) { renderGrid(); return; }
-  S.catalogo.forEach(p => {
-    const card = document.querySelector('.prod[data-sku="' + CSS.escape(p.sku) + '"]'); if (!card) return;
-    const q = S.cart[p.sku] || 0, out = p.stock <= 0;
-    card.classList.toggle('agotado', out);
-    const stk = card.querySelector('.stk'); const html = stkHtml(p, out);
-    if (stk.innerHTML !== html) stk.innerHTML = html;
-    stk.classList.toggle('low', p.stock <= 5);
-    const img = card.querySelector('img.img'); if (img && p.imagen_url && img.getAttribute('src') !== p.imagen_url) img.src = p.imagen_url; // foto nueva: solo esa
-    else if (!img && p.imagen_url) { renderGrid(); return; }
-    const btns = card.querySelectorAll('.qty button'); if (btns.length === 2) { btns[0].disabled = q === 0; btns[1].disabled = out || q + p.step > p.stock; card.querySelector('.qty span').textContent = q; }
-  });
-}
+function patchGrid() { renderGrid(); }
 const stkHtml = (p, out) => `${out ? 'Agotado en percha' : 'Quedan ' + p.stock}${p.ubicacion ? ` · <span class="ubic" title="Cuadrante en la percha">📍 ${esc(p.ubicacion)}</span>` : ''}`;
 const tiendaVisible = () => S.user && $('v-tienda') && !$('v-tienda').classList.contains('hide') && document.visibilityState === 'visible';
 setInterval(() => { if (tiendaVisible() && !$('modal').innerHTML) refrescarTienda(true); }, TIENDA_VIVO_MS);
@@ -428,25 +415,52 @@ function setCat(c) { S.cat = c; renderChips(); renderGrid(); }
 function setTier(t) { S.tier = t; renderChips(); renderGrid(); }
 function emojiCat(c) { c = String(c || '').toLowerCase(); return /dulce|chupete|caramelo/.test(c) ? '🍬' : /bebida|jugo|agua|gaseosa/.test(c) ? '🥤' : /galleta/.test(c) ? '🍪' : /snack|papas/.test(c) ? '🍿' : /l[aá]cteo|yogur|leche/.test(c) ? '🥛' : /fruta/.test(c) ? '🍎' : /aseo|limpieza/.test(c) ? '🧼' : '🛍️'; }
 function tierLabel(k) { k = String(k); if (k === '1' || k === '1.0') k = '1$'; const t = S.tiers.find(x => x.key === k); return t ? t.label : k; }
+// Cuadrícula con tarjetas PERSISTENTES: cada producto tiene su tarjeta (por SKU) y se reutiliza siempre —al filtrar, al
+// tocar +/−, al refrescar stock— solo se actualizan los textos que cambiaron. La <img> nunca se vuelve a crear, así la
+// foto se descarga UNA sola vez al abrir la app y no parpadea.
+const _cards = {};
 function renderGrid() {
   const list = S.catalogo.filter(p => (S.cat === 'Todas' || p.categoria === S.cat) && (S.tier === 'Todos' || p.tier === S.tier) &&
     (!S.q || p.nombre.toLowerCase().includes(S.q) || p.sku.toLowerCase().includes(S.q)))
     .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nombre.localeCompare(b.nombre));
   $('noprod').classList.toggle('hide', list.length > 0);
-  $('grid').innerHTML = list.map(p => {
-    const q = S.cart[p.sku] || 0, out = p.stock <= 0;
-    return `<div class="prod ${out ? 'agotado' : ''}" data-sku="${esc(p.sku)}">
-      ${p.imagen_url ? `<img class="img" src="${esc(p.imagen_url)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=noimg>${emojiCat(p.categoria)}</div>'">` : `<div class="noimg">${emojiCat(p.categoria)}</div>`}
-      <div class="cat">${esc(p.categoria)}</div>
-      <div class="nm" title="${esc(p.nombre)}">${esc(p.nombre)}</div>
-      <div class="pr">${esc(tierLabel(p.tier))}${p.step > 1 ? ' <span class="small muted">(en pares)</span>' : ''}</div>
-      <div class="stk ${p.stock <= 5 ? 'low' : ''}">${stkHtml(p, out)}</div>
-      <div class="qty">
-        <button onclick="addCart('${esc(p.sku)}',-1)" ${q === 0 ? 'disabled' : ''}>−</button><span>${q}</span>
-        <button class="add" onclick="addCart('${esc(p.sku)}',1)" ${out || q + p.step > p.stock ? 'disabled' : ''}>+</button>
-      </div></div>`;
-  }).join('');
+  const grid = $('grid'); const vivos = {};
+  list.forEach((p, i) => {
+    let card = _cards[p.sku];
+    if (!card) { card = buildCard(p); _cards[p.sku] = card; }
+    updateCard(card, p);
+    if (grid.children[i] !== card) grid.insertBefore(card, grid.children[i] || null); // mover el nodo no recarga la foto
+    vivos[p.sku] = 1;
+  });
+  Array.from(grid.children).forEach(c => { if (!vivos[c.dataset.sku]) c.remove(); }); // filtrados: se quitan pero su tarjeta queda en memoria
 }
+function buildCard(p) {
+  const d = document.createElement('div'); d.className = 'prod'; d.dataset.sku = p.sku;
+  d.innerHTML = `<div class="imgbox"></div>
+      <div class="cat"></div>
+      <div class="nm"></div>
+      <div class="pr"></div>
+      <div class="stk"></div>
+      <div class="qty"><button onclick="addCart('${esc(p.sku)}',-1)">−</button><span>0</span><button class="add" onclick="addCart('${esc(p.sku)}',1)">+</button></div>`;
+  return d;
+}
+function updateCard(card, p) {
+  const q = S.cart[p.sku] || 0, out = p.stock <= 0;
+  card.classList.toggle('agotado', out);
+  const box = card.querySelector('.imgbox');
+  if (p.imagen_url) {
+    let img = box.querySelector('img');
+    if (!img) { box.innerHTML = ''; img = document.createElement('img'); img.className = 'img'; img.alt = ''; img.decoding = 'async'; img.onerror = () => { box.innerHTML = '<div class="noimg">' + emojiCat(p.categoria) + '</div>'; box.dataset.err = p.imagen_url; }; box.appendChild(img); }
+    if (img.getAttribute('src') !== p.imagen_url) img.src = p.imagen_url; // solo si cambió la foto
+  } else if (!box.querySelector('.noimg') || box.dataset.err) { box.innerHTML = '<div class="noimg">' + emojiCat(p.categoria) + '</div>'; delete box.dataset.err; }
+  setTxt(card.querySelector('.cat'), p.categoria);
+  const nm = card.querySelector('.nm'); setTxt(nm, p.nombre); if (nm.title !== p.nombre) nm.title = p.nombre;
+  const pr = tierLabel(p.tier) + (p.step > 1 ? ' <span class="small muted">(en pares)</span>' : ''); const prEl = card.querySelector('.pr'); if (prEl.dataset.v !== pr) { prEl.innerHTML = pr; prEl.dataset.v = pr; }
+  const stk = card.querySelector('.stk'); const sh = stkHtml(p, out); if (stk.dataset.v !== sh) { stk.innerHTML = sh; stk.dataset.v = sh; } stk.classList.toggle('low', p.stock <= 5);
+  const btns = card.querySelectorAll('.qty button'); btns[0].disabled = q === 0; btns[1].disabled = out || q + p.step > p.stock;
+  setTxt(card.querySelector('.qty span'), String(q));
+}
+function setTxt(el, t) { if (el.textContent !== t) el.textContent = t; }
 
 /* ===================== CARRITO ===================== */
 const cartKey = () => 'lt_carrito_' + (S.user ? S.user.email : 'x');
