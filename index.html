@@ -48,6 +48,9 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}.cands .c{border:2px solid var(--line);border-radius:10px;padding:4px;cursor:pointer;text-align:center}.cands .c img{width:100%;aspect-ratio:1/1;object-fit:contain}.cands .c.on{border-color:var(--brand)}
 .prod .pr{font-weight:800;color:var(--brand);font-size:15px}.prod .cat{font-size:11px;color:var(--muted)}
 .prod .stk{font-size:11px;color:var(--muted)}.prod .stk.low{color:var(--warn);font-weight:700}
+.ubic{display:inline-block;background:var(--brand);color:#fff;font-weight:800;font-size:11px;padding:2px 7px;border-radius:999px;letter-spacing:.3px}
+.ubic.none{background:#e5e7eb;color:#6b7280;font-weight:600}
+.ubic-sel{padding:6px 8px;width:76px;font-weight:700}
 .qty{display:flex;align-items:center;gap:6px;margin-top:auto}
 .qty button{width:36px;height:36px;padding:0;border-radius:10px;font-size:20px;line-height:1;background:#e6eef8;color:var(--brand);box-shadow:none}
 .qty button.add{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}.qty span{min-width:26px;text-align:center;font-weight:700}
@@ -211,7 +214,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 17;
+const EXPECTED_API = 18;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -392,7 +395,7 @@ function renderGrid() {
       <div class="cat">${esc(p.categoria)}</div>
       <div class="nm">${esc(p.nombre)}</div>
       <div class="pr">${esc(tierLabel(p.tier))}${p.step > 1 ? ' <span class="small muted">(en pares)</span>' : ''}</div>
-      <div class="stk ${p.stock <= 5 ? 'low' : ''}">${out ? 'Agotado en percha' : 'Quedan ' + p.stock}</div>
+      <div class="stk ${p.stock <= 5 ? 'low' : ''}">${out ? 'Agotado en percha' : 'Quedan ' + p.stock}${p.ubicacion ? ` · <span class="ubic" title="Cuadrante en la percha">📍 ${esc(p.ubicacion)}</span>` : ''}</div>
       <div class="qty">
         <button onclick="addCart('${esc(p.sku)}',-1)" ${q === 0 ? 'disabled' : ''}>−</button><span>${q}</span>
         <button class="add" onclick="addCart('${esc(p.sku)}',1)" ${out || q + p.step > p.stock ? 'disabled' : ''}>+</button>
@@ -425,7 +428,7 @@ function openCart() {
   const lines = Object.keys(S.cart).map(sku => { const p = S.catalogo.find(x => x.sku === sku); return p ? { p, q: S.cart[sku] } : null; }).filter(Boolean);
   const total = cartTotal(), falta = total - S.user.saldo;
   modal(`<h3>🛒 Tu carrito</h3>
-    ${lines.map(l => `<div class="line"><div class="nm">${esc(l.p.nombre)}<div class="small muted">${esc(tierLabel(l.p.tier))}</div></div>
+    ${lines.map(l => `<div class="line"><div class="nm">${esc(l.p.nombre)}<div class="small muted">${esc(tierLabel(l.p.tier))}${l.p.ubicacion ? ` · <span class="ubic">📍 ${esc(l.p.ubicacion)}</span>` : ''}</div></div>
       <div class="qty"><button onclick="addCart('${esc(l.p.sku)}',-1);openCart()">−</button><span>${l.q}</span><button class="add" onclick="addCart('${esc(l.p.sku)}',1);openCart()" ${l.q + l.p.step > l.p.stock ? 'disabled' : ''}>+</button></div>
       <div class="sub">${money(l.p.precio_unit * l.q)}</div></div>`).join('') || '<div class="empty">Carrito vacío</div>'}
     <div class="total"><span>Total</span><span>${money(total)}</span></div>
@@ -441,9 +444,22 @@ async function comprar() {
   try {
     const r = await call('apiComprar', items);
     S.cart = {}; cartSave(); S.catalogo = r.catalogo; setSaldo(r.saldo);
-    closeModal(); renderGrid(); renderCartBar();
-    toast('✅ Compra realizada: ' + money(r.total) + '. Saldo: ' + money(r.saldo), 'ok');
+    renderGrid(); renderCartBar();
+    resumenCompra(r);
   } catch (e) { try { S.catalogo = await gs('apiCatalogo'); renderGrid(); } catch (_) {} }
+}
+
+// Resumen final de la compra: qué llevar y en qué cuadrante de la percha está cada producto
+function resumenCompra(r) {
+  const items = r.items || [];
+  modal(`<h3>✅ Compra realizada</h3>
+    <p class="small muted" style="margin:0 0 8px">Retira tus productos de la percha. El cuadrante te dice dónde está cada uno (columna 1-5, fila A-D).</p>
+    ${items.map(i => `<div class="line"><div class="nm">${i.cantidad}× ${esc(i.nombre)}</div>
+      <div>${i.ubicacion ? `<span class="ubic">📍 ${esc(i.ubicacion)}</span>` : '<span class="ubic none">sin cuadrante</span>'}</div>
+      <div class="sub">${money(i.subtotal)}</div></div>`).join('')}
+    <div class="total"><span>Total</span><span>${money(r.total)}</span></div>
+    <div class="row"><span class="muted">Saldo restante</span><span class="right b">${money(r.saldo)}</span></div>
+    <div class="row" style="margin-top:12px"><button onclick="closeModal()">Listo</button></div>`);
 }
 
 /* ===================== MODAL ===================== */
@@ -456,7 +472,7 @@ async function loadHistorial() {
     const h = await call('apiHistorial');
     setSaldo(h.saldo);
     $('hisCompras').innerHTML = h.compras.length ? h.compras.map(c => `<div class="mov"><div><div class="b">${esc(c.fecha)}</div>
-      <div class="small muted">${c.items.map(i => i.cantidad + '× ' + esc(i.nombre)).join(', ')}</div></div><div class="m neg">−${money(c.total)}</div></div>`).join('') : '<div class="empty">Aún no has comprado.</div>';
+      <div class="small muted">${c.items.map(i => i.cantidad + '× ' + esc(i.nombre) + (i.ubicacion ? ' <span class="ubic">📍 ' + esc(i.ubicacion) + '</span>' : '')).join(', ')}</div></div><div class="m neg">−${money(c.total)}</div></div>`).join('') : '<div class="empty">Aún no has comprado.</div>';
     $('hisRecargas').innerHTML = h.recargas.length ? h.recargas.map(r => `<div class="mov"><div><div class="b">${esc(r.fecha)} <span class="badge ${esc(r.estado)}">${esc(estadoTxt(r.estado))}</span></div>
       ${r.nota_admin ? `<div class="small muted">${esc(r.nota_admin)}</div>` : ''}</div><div class="m ${r.estado === 'rechazada' ? '' : 'pos'}">${money(r.monto)}</div></div>`).join('') : '<div class="empty">Sin recargas.</div>';
     $('hisMovs').innerHTML = h.movimientos.length ? h.movimientos.map(m => `<div class="mov"><div><div>${esc(m.detalle || m.tipo)}</div><div class="small muted">${esc(m.fecha)} · saldo ${money(m.saldo_despues)}</div></div>
@@ -766,19 +782,22 @@ async function aRestock() {
     const r = await call('apiAdminRestock'); S.admin.restock = r;
     const c = r.config;
     const R = r.recomendaciones || { comprarMas: [], comprarMenos: [], noRecomprar: [], sinDatos: [], top: [] };
-    $('a-restock').innerHTML = `<div class="card" style="padding:10px 14px"><div class="row wrap"><div class="small"><b>📊 Análisis automático</b> · último cálculo: ${esc(r.ultimoAnalisis || 'aún no corrió')} · ${r.triggerActivo ? '⏱ se recalcula cada hora' : '<span style="color:var(--warn)">⚠ trigger horario no instalado (corre setupTiendita)</span>'}</div><button class="small sec" style="flex:0 0 auto" onclick="recalcular()">🔄 Recalcular ahora</button></div>
-      <p class="small muted" style="margin:6px 0 0">Mínimo dinámico = consumo diario × <b>${c.minimo}</b> días (Config → DIAS_MINIMO). Objetivo de percha = máx(¼ del stock, consumo × <b>${c.percha}</b> días). Recompra sugerida para cubrir <b>${c.compra}</b> días. Si fijas un mínimo u objetivo manual en Catálogo → ✏️, ese manda. La mercadería nueva entra a bodega y aquí ves cuánto pasar a percha.</p></div>
+    $('a-restock').innerHTML = `<div class="card" style="padding:10px 14px"><div class="row wrap"><div class="small"><b>📊 Análisis automático</b> · último cálculo: ${esc(r.ultimoAnalisis || 'aún no corrió')} · ${r.triggerActivo ? '⏱ se recalcula cada hora' : '<span style="color:var(--warn)">⚠ trigger horario no instalado (corre setupTiendita)</span>'}</div><button class="small sec" style="flex:0 0 auto" onclick="recalcular()">🔄 Actualizar (releer Config y recalcular)</button></div>
+      <p class="small muted" style="margin:6px 0 0"><b>Configuración en uso:</b> percha = <b>${fracTxt(c.fraccion_percha)}</b> del stock (Config → FRACCION_PERCHA = "${esc(String(c.fraccion_texto || ''))}") · DIAS_PERCHA <b>${c.percha}</b> · DIAS_MINIMO <b>${c.minimo}</b> · DIAS_COMPRA <b>${c.compra}</b> · ingreso de facturas a ${c.ingreso_a_bodega ? '<b>bodega</b>' : 'percha/bodega'}. SEMANAS_COBERTURA y SEMANAS_HISTORIAL ya no se usan.</p>
+      <p class="small muted" style="margin:6px 0 0">Mínimo dinámico = consumo diario × <b>${c.minimo}</b> días. Objetivo de percha = máx(${fracTxt(c.fraccion_percha)} del stock, consumo × <b>${c.percha}</b> días). Recompra sugerida para cubrir <b>${c.compra}</b> días. Si fijas un mínimo u objetivo manual en Catálogo → ✏️, ese manda. La mercadería nueva entra a bodega y aquí ves cuánto pasar a percha.</p></div>
       <div class="card"><h3>🧭 Recomendaciones de compra</h3>
         <div class="recbtns" id="recBtns"></div>
         <div id="recPanel"></div>
         ${R.sinDatos.length ? `<div class="small muted" style="margin-top:8px">${R.sinDatos.length} producto(s) nuevos sin historial todavía.</div>` : ''}</div>
       <div class="card"><h3>🔄 Restock interno — sacar de bodega a percha</h3>
-        ${r.interno.length ? `<div class="tbl"><table><thead><tr><th>✓</th><th>Producto</th><th class="right">Percha</th><th class="right">Objetivo</th><th class="right">Bodega</th><th class="right">Sacar</th></tr></thead><tbody>
+        ${r.interno.length ? `<p class="small muted" style="margin:0 0 8px">📍 <b>Cuadrante</b> = dónde va el producto en la percha (columna 1-${(r.ubicaciones || {}).columnas ? r.ubicaciones.columnas.length : 5} × fila A-${(r.ubicaciones || {}).filas ? r.ubicaciones.filas.slice(-1)[0] : 'D'}). Ponlo <b>antes</b> de pasar el producto de bodega a percha; los usuarios lo ven en la tienda y en el resumen de su compra.</p>
+          <div class="tbl"><table><thead><tr><th>✓</th><th>Producto</th><th>📍 Cuadrante</th><th class="right">Percha</th><th class="right">Objetivo</th><th class="right">Bodega</th><th class="right">Sacar</th></tr></thead><tbody>
           ${r.interno.map((it, i) => `<tr><td><input type="checkbox" class="rsChk" data-i="${i}" ${it.mover > 0 ? 'checked' : 'disabled'} style="width:auto"></td>
             <td><div class="b">${esc(it.nombre)}</div><div class="small muted">${esc(it.sku)} · vende ${it.consumo_semanal}/sem${it.sin_bodega ? ' · <span style="color:var(--danger)">bodega vacía</span>' : ''}</div></td>
+            <td>${selUbic('rsUb_' + i, it.ubicacion, r.ubicaciones)}</td>
             <td class="right" style="color:var(--warn);font-weight:700">${it.percha}</td><td class="right">${it.objetivo}</td><td class="right">${it.bodega}</td>
             <td class="right"><input type="number" min="0" max="${it.bodega}" value="${it.mover}" id="rsMov_${i}" style="width:70px;padding:6px 8px"></td></tr>`).join('')}</tbody></table></div>
-          <div class="row" style="margin-top:10px"><button class="sec" onclick="imprimirLista('interno')">🖨️ Lista para bodega</button><button onclick="aplicarRestock()">✅ Aplicar traslados marcados</button></div>`
+          <div class="row" style="margin-top:10px"><button class="sec" onclick="imprimirLista('interno')">🖨️ Lista para bodega</button><button class="sec" onclick="guardarUbicaciones()">📍 Guardar cuadrantes</button><button onclick="aplicarRestock()">✅ Aplicar traslados marcados</button></div>`
         : '<div class="empty">La percha está completa en todos los productos. 👌</div>'}</div>
       <div class="card"><h3>🛒 Restock externo — recompra (bajo mínimo dinámico)</h3>
         ${r.externo.length ? `<div class="tbl"><table><thead><tr><th>Producto</th><th class="right">Stock</th><th class="right">Mín.</th><th class="right">Vende/sem</th><th class="right">Cobertura</th><th class="right">Comprar</th></tr></thead><tbody>
@@ -788,8 +807,8 @@ async function aRestock() {
             <td class="right"><b>${it.empaques_sugeridos}</b> emp.<div class="small muted">= ${it.empaques_sugeridos * it.unid_por_empaque} u. · ${money(it.costo_estimado)}</div></td></tr>`).join('')}</tbody></table></div>
           <div class="row" style="margin-top:10px"><span class="b">Costo estimado de la recompra: ${money(r.costoRecompra)}</span><button class="sec" onclick="imprimirLista('externo')">🖨️ Lista de compras</button></div>`
         : '<div class="empty">Nada por recomprar por ahora.</div>'}</div>
-      <div class="card"><h3>Estado por producto (ordenado por rotación)</h3><div class="tbl"><table><thead><tr><th>#</th><th>Producto</th><th class="right">Percha</th><th class="right">Bodega</th><th class="right">Total</th><th class="right">Vende/día</th><th class="right">Mínimo</th><th class="right">Cubre</th><th>Recomendación</th></tr></thead><tbody>
-        ${r.todos.map(it => `<tr><td class="small muted">${it.rank_rotacion}${it.top ? ' ⭐' : ''}</td><td>${esc(it.nombre)}<div class="small muted">${esc(it.sku)}</div></td><td class="right">${it.percha}<span class="small muted">/${it.objetivo}</span></td><td class="right">${it.bodega}</td><td class="right b">${it.stock}</td><td class="right">${it.consumo_diario}</td><td class="right">${it.minimo}${it.minimo_manual !== null && it.minimo_manual !== undefined ? '<span class="small muted"> (manual)</span>' : ''}</td><td class="right">${it.dias_cobertura === null ? '—' : it.dias_cobertura + ' d'}</td><td><span class="badge ${it.recomendacion === 'COMPRAR MÁS' ? 'rechazada' : it.recomendacion === 'COMPRAR MENOS' ? 'pendiente' : it.recomendacion === 'MANTENER' ? 'cruzada' : 'descartado'}">${esc(it.recomendacion)}</span><div class="small muted">${esc(it.motivo || '')}</div></td></tr>`).join('')}</tbody></table></div></div>`;
+      <div class="card"><h3>Estado por producto (ordenado por rotación)</h3><div class="tbl"><table><thead><tr><th>#</th><th>Producto</th><th>📍</th><th class="right">Percha</th><th class="right">Bodega</th><th class="right">Total</th><th class="right">Vende/día</th><th class="right">Mínimo</th><th class="right">Cubre</th><th>Recomendación</th></tr></thead><tbody>
+        ${r.todos.map(it => `<tr><td class="small muted">${it.rank_rotacion}${it.top ? ' ⭐' : ''}</td><td>${esc(it.nombre)}<div class="small muted">${esc(it.sku)}</div></td><td>${it.ubicacion ? `<span class="ubic">${esc(it.ubicacion)}</span>` : '<span class="ubic none">—</span>'}</td><td class="right">${it.percha}<span class="small muted">/${it.objetivo}</span></td><td class="right">${it.bodega}</td><td class="right b">${it.stock}</td><td class="right">${it.consumo_diario}</td><td class="right">${it.minimo}${it.minimo_manual !== null && it.minimo_manual !== undefined ? '<span class="small muted"> (manual)</span>' : ''}</td><td class="right">${it.dias_cobertura === null ? '—' : it.dias_cobertura + ' d'}</td><td><span class="badge ${it.recomendacion === 'COMPRAR MÁS' ? 'rechazada' : it.recomendacion === 'COMPRAR MENOS' ? 'pendiente' : it.recomendacion === 'MANTENER' ? 'cruzada' : 'descartado'}">${esc(it.recomendacion)}</span><div class="small muted">${esc(it.motivo || '')}</div></td></tr>`).join('')}</tbody></table></div></div>`;
     renderRecBtns();
   } catch (e) {}
 }
@@ -813,18 +832,41 @@ function renderRecBtns() {
   $('recPanel').innerHTML = !d ? '' : `<div class="recpanel">${list.length ? `<div class="tbl"><table><thead><tr>${d.cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${list.map(t => `<tr>${d.row(t).map((c, i) => `<td class="${i > 0 && d.k !== 'top' ? 'right' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : `<div class="empty">Nada en "${d.label}" por ahora.</div>`}</div>`;
 }
 function toggleRec(k) { S.admin.recOpen = S.admin.recOpen === k ? null : k; renderRecBtns(); }
-async function recalcular() { try { const r = await call('apiAdminRecalcularAnalisis'); toast('📊 Análisis recalculado (' + r.productos + ' productos)', 'ok'); aRestock(); } catch (e) {} }
+async function recalcular() { try { const r = await call('apiAdminRecalcularAnalisis'); toast('📊 Config releída y análisis recalculado (' + r.productos + ' productos)', 'ok'); aRestock(); } catch (e) {} }
+const fracTxt = f => { const m = { 0.25: '¼', 0.3333: '⅓', 0.5: '½', 0.2: '⅕', 0.75: '¾', 1: 'todo' }; return m[f] || (Math.round(f * 100) + '%'); };
+// Selector de cuadrante (columna 1-5 + fila A-D). ubic = {columnas, filas, todas}
+function selUbic(id, val, ubic) {
+  const todas = (ubic && ubic.todas) || ['1A'];
+  return `<select id="${id}" class="ubic-sel" data-orig="${esc(val || '')}"><option value="">—</option>${todas.map(u => `<option ${u === val ? 'selected' : ''}>${u}</option>`).join('')}</select>`;
+}
+// Cuadrantes cambiados en la tabla de restock interno (aunque no se mueva stock)
+function ubicacionesCambiadas() {
+  const r = S.admin.restock; const out = [];
+  r.interno.forEach((it, i) => { const el = $('rsUb_' + i); if (el && el.value !== (el.dataset.orig || '')) out.push({ sku: it.sku, unidades: 0, ubicacion: el.value }); });
+  return out;
+}
+async function guardarUbicaciones() {
+  const items = ubicacionesCambiadas();
+  if (!items.length) return toast('No cambiaste ningún cuadrante', 'err');
+  try { const x = await call('apiAdminAplicarTraslados', items, 'ubicación en percha'); toast('📍 ' + x.ubicados + ' cuadrantes guardados', 'ok'); aRestock(); } catch (e) {}
+}
 async function aplicarRestock() {
-  const r = S.admin.restock; const items = [];
-  document.querySelectorAll('.rsChk:checked').forEach(ch => { const i = +ch.dataset.i; const u = +$('rsMov_' + i).value; if (u > 0) items.push({ sku: r.interno[i].sku, unidades: u }); });
+  const r = S.admin.restock; const items = []; const sinUb = [];
+  document.querySelectorAll('.rsChk:checked').forEach(ch => { const i = +ch.dataset.i; const u = +$('rsMov_' + i).value; const ub = $('rsUb_' + i) ? $('rsUb_' + i).value : '';
+    if (u > 0) { items.push({ sku: r.interno[i].sku, unidades: u, ubicacion: ub }); if (!ub) sinUb.push(r.interno[i].nombre); } });
   if (!items.length) return toast('No hay traslados marcados', 'err');
-  if (!confirm('¿Registrar ' + items.length + ' traslados de bodega a percha? Hazlo cuando ya moviste físicamente los productos.')) return;
-  try { const x = await call('apiAdminAplicarTraslados', items, 'restock interno'); toast('✅ ' + x.traslados + ' traslados registrados', 'ok'); aRestock(); } catch (e) {}
+  if (sinUb.length) return toast('📍 Pon el cuadrante antes de pasar a percha: ' + sinUb.slice(0, 3).join(', ') + (sinUb.length > 3 ? '…' : ''), 'err');
+  // cuadrantes cambiados en filas no marcadas también se guardan
+  const marcados = {}; items.forEach(i => { marcados[i.sku] = 1; });
+  ubicacionesCambiadas().forEach(u => { if (!marcados[u.sku]) items.push(u); });
+  const n = items.filter(i => i.unidades > 0).length;
+  if (!confirm('¿Registrar ' + n + ' traslados de bodega a percha (con su cuadrante)? Hazlo cuando ya moviste físicamente los productos.')) return;
+  try { const x = await call('apiAdminAplicarTraslados', items, 'restock interno'); toast('✅ ' + x.traslados + ' traslados registrados · ' + x.ubicados + ' cuadrantes', 'ok'); aRestock(); } catch (e) {}
 }
 function imprimirLista(tipo) {
   const r = S.admin.restock; const hoy = new Date().toLocaleDateString();
   const filas = tipo === 'interno'
-    ? r.interno.filter(it => it.mover > 0).map(it => `<tr><td>${esc(it.nombre)}</td><td>${esc(it.sku)}</td><td style="text-align:right"><b>${it.mover}</b> u.</td><td></td></tr>`).join('')
+    ? r.interno.filter(it => it.mover > 0).map((it, i) => { const el = $('rsUb_' + r.interno.indexOf(it)); const ub = el && el.value ? el.value : (it.ubicacion || ''); return `<tr><td>${esc(it.nombre)}</td><td>${esc(it.sku)} ${ub ? '· <b>📍 ' + esc(ub) + '</b>' : ''}</td><td style="text-align:right"><b>${it.mover}</b> u.</td><td></td></tr>`; }).join('')
     : r.externo.filter(it => it.empaques_sugeridos > 0).map(it => `<tr><td>${esc(it.nombre)}</td><td>${esc(it.sku)}</td><td style="text-align:right"><b>${it.empaques_sugeridos}</b> emp. (${it.empaques_sugeridos * it.unid_por_empaque} u.)</td><td style="text-align:right">${money(it.costo_estimado)}</td></tr>`).join('');
   const w = window.open('', '_blank');
   w.document.write(`<html><head><title>${tipo === 'interno' ? 'Restock interno' : 'Lista de compras'} ${hoy}</title><style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}td,th{border-bottom:1px solid #ddd;padding:6px;text-align:left;font-size:14px}</style></head><body>
@@ -896,7 +938,7 @@ async function doAjuste(email) {
 /* --- Catálogo --- */
 async function aCatalogo() {
   try {
-    const r = await call('apiAdminCatalogo'); S.admin.prods = r.productos; S.categorias = r.categorias; S.tiers = r.tiers;
+    const r = await call('apiAdminCatalogo'); S.admin.prods = r.productos; S.categorias = r.categorias; S.tiers = r.tiers; S.admin.ubicaciones = r.ubicaciones;
     $('a-catalogo').innerHTML = `<div class="row"><input id="cq" placeholder="Buscar SKU / producto…" oninput="renderProds()"><button style="flex:0 0 auto" onclick="editProd()">＋ Producto</button></div>
       <div class="row wrap" style="margin-top:8px"><button class="small sec" onclick="editCats()">🏷️ Categorías</button><button class="small sec" onclick="fotosFaltantes()">📷 Buscar fotos faltantes (${r.productos.filter(p => p.activo && !p.imagen_url).length})</button><span class="small muted">${r.productos.length} productos · ${r.productos.filter(p => p.activo).length} activos</span></div>
       <div class="tbl" style="margin-top:10px"><table><thead><tr><th>SKU</th><th>Producto</th><th>Precio</th><th class="right">Stock</th><th></th></tr></thead><tbody id="cbody"></tbody></table></div>`;
@@ -908,7 +950,7 @@ function renderProds() {
   $('cbody').innerHTML = S.admin.prods.filter(p => !q || (p.sku + ' ' + p.nombre + ' ' + p.categoria).toLowerCase().includes(q)).map(p => `<tr style="${p.activo ? '' : 'opacity:.5'}">
     <td class="small b">${p.imagen_url ? `<img class="thumb-sm" src="${esc(p.imagen_url)}" alt="">` : `<div class="thumb-sm" style="display:flex;align-items:center;justify-content:center">${emojiCat(p.categoria)}</div>`}<div>${esc(p.sku)}</div></td>
     <td><div class="b">${esc(p.nombre)}</div><div class="small muted">${esc(p.categoria)} · ${p.unid_por_empaque} u/empaque · costo u ${money(p.costo_unit)}${p.codigo_proveedor ? ' · prov ' + esc(p.codigo_proveedor) : ''}</div></td>
-    <td>${esc(tierLabel(p.tier))}</td>
+    <td>${esc(tierLabel(p.tier))}<div>${p.ubicacion ? `<span class="ubic">📍 ${esc(p.ubicacion)}</span>` : ''}</div></td>
     <td class="right b" style="color:${p.stock <= (p.stock_minimo !== null && p.stock_minimo !== undefined ? p.stock_minimo : 5) ? 'var(--warn)' : 'inherit'}">${p.stock}<div class="small muted" style="font-weight:400">P ${p.stock_percha} · B ${p.stock_bodega}</div></td>
     <td class="right" style="white-space:nowrap"><button class="small sec" title="Tomar foto" onclick="fotoRapida('${esc(p.sku)}')">📸</button> <button class="small sec" onclick="editProd('${esc(p.sku)}')">✏️</button> <button class="small sec" onclick="ingresoStock('${esc(p.sku)}')">＋Stock</button></td></tr>`).join('');
 }
@@ -926,7 +968,8 @@ function editProd(sku) {
           : `<label>Empaques comprados (stock inicial = empaques × unidades)</label><input id="peEmp" type="number" min="0" value="0">`}
     <div class="row"><div><label>Objetivo en percha (u.)</label><input id="peObj" type="number" min="0" placeholder="auto = ¼ del stock" value="${p.percha_objetivo === null || p.percha_objetivo === undefined ? '' : p.percha_objetivo}"></div>
       <div><label>Stock mínimo antes de recomprar (u.)</label><input id="peMin" type="number" min="0" placeholder="por defecto ${5}" value="${p.stock_minimo === null || p.stock_minimo === undefined ? '' : p.stock_minimo}"></div></div>
-    <label>Código del proveedor (de la factura)</label><input id="peCP" value="${esc(p.codigo_proveedor || '')}">
+    <div class="row"><div><label>Código del proveedor (de la factura)</label><input id="peCP" value="${esc(p.codigo_proveedor || '')}"></div>
+      <div style="flex:0 0 130px"><label>📍 Cuadrante en percha</label>${selUbic('peUb', p.ubicacion || '', S.admin.ubicaciones)}</div></div>
     <label>Estado</label><select id="peAct"><option value="1" ${p.activo ? 'selected' : ''}>activo (visible en la tienda)</option><option value="0" ${!p.activo ? 'selected' : ''}>inactivo</option></select>
     ${sku ? `<label>Foto</label><div class="row"><div style="flex:0 0 90px">${p.imagen_url ? `<img id="peImg" src="${esc(p.imagen_url)}" style="width:90px;height:90px;object-fit:contain;border-radius:10px;background:#f3f4f6">` : `<div id="peImg" class="noimg" style="width:90px;height:90px;font-size:30px">${emojiCat(p.categoria)}</div>`}</div>
       <div><button class="small" onclick="document.getElementById('peCam').click()">📸 Tomar foto</button> <button class="small sec" onclick="document.getElementById('peFile').click()">🖼️ Galería</button> <button class="small sec" onclick="buscarFoto('${esc(sku)}')">🔎 Internet</button> <button class="small sec" onclick="pegarUrlFoto('${esc(sku)}')">🔗 URL</button> ${p.imagen_url ? `<button class="small sec" onclick="quitarFoto('${esc(sku)}')">Quitar</button>` : ''}
@@ -937,7 +980,7 @@ function editProd(sku) {
 async function saveProd(isEdit) {
   const p = { sku: $('peSku').value.trim(), nombre: $('peNom').value.trim(), categoria: $('peCat').value, tier: $('peTier').value,
     unid_por_empaque: +$('peUE').value, costo_empaque: +$('peCE').value, activo: $('peAct').value === '1', codigo_proveedor: $('peCP').value.trim() };
-  p.percha_objetivo = $('peObj').value; p.stock_minimo = $('peMin').value;
+  p.percha_objetivo = $('peObj').value; p.stock_minimo = $('peMin').value; p.ubicacion = $('peUb').value;
   if (isEdit) { p.stock_percha = $('pePer').value; p.stock_bodega = $('peBod').value; } else p.empaques_comprados = +$('peEmp').value;
   try { await call('apiAdminGuardarProducto', p); closeModal(); toast('Producto guardado', 'ok'); aCatalogo(); } catch (e) {}
 }
@@ -1287,8 +1330,7 @@ async function importar(facturaId) {
   try {
     const r = await call('apiAdminImportarItems', facturaId, items);
     toast('✅ ' + r.nuevos + ' nuevos, ' + r.actualizados + ' actualizados', 'ok');
-    $('fxResult').innerHTML = '';
-    if (r.imgAuto && r.skusNuevos && r.skusNuevos.length) await autoFotos(r.skusNuevos);
+    $('fxResult').innerHTML = ''; // las fotos se ponen directo en Catálogo (📸), ya no se buscan al importar
     S.catalogo = await gs('apiCatalogo'); renderGrid();
     if (r.aBodega) { toast('📦 La mercadería entró a bodega. Revisa cuánto pasar a percha.', 'ok'); adminShow('restock'); } else aFactura();
   } catch (e) {}
