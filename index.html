@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v20.html (GitHub Pages) — espera Motor API v17. Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v32.html (GitHub Pages) — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -78,6 +78,13 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .badge.pendiente{background:#fef3c7;color:#92400e}.badge.aprobada,.badge.preaprobada{background:#dbeafe;color:#1e40af}.badge.cruzada,.badge.cruzado{background:#dcfce7;color:#166534}.badge.rechazada,.badge.sin_match{background:#fee2e2;color:#991b1b}.badge.descartado{background:#f3f4f6;color:#6b7280}
 .badge.admin{background:#e0e7ff;color:#3730a3}.badge.usuario{background:#f3f4f6;color:#374151}.badge.off{background:#fee2e2;color:#991b1b}
 .mov{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+/* compras del usuario: una burbuja por compra con sus productos en viñetas */
+.compra{background:#f4f8fd;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:8px 0}
+.compra-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.compra-items{list-style:disc;margin:6px 0 0;padding-left:18px;font-size:13px}.compra-items li{padding:2px 0;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.compra-items li::before{content:'•';color:var(--brand);font-weight:800;margin-right:2px}.compra-items{list-style:none;padding-left:4px}
+.compra-items .q{font-weight:800;color:var(--brand)}.compra-items .sub{margin-left:auto;color:var(--muted);font-size:12px}
+.diarow td{background:#eef4fb;font-weight:800;font-size:12px;color:var(--brand)}
 .mov .m{font-weight:800;white-space:nowrap}.mov .m.neg{color:var(--danger)}.mov .m.pos{color:var(--ok)}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}th{font-size:11px;color:var(--muted);text-transform:uppercase}
 .tbl{overflow-x:auto}
@@ -187,6 +194,7 @@ a{color:var(--brand)}
       <button data-a="resumen" class="on">📊 Resumen</button>
       <button data-a="recargas">💵 Recargas</button>
       <button data-a="banco">🏦 Banco</button>
+      <button data-a="movs">🧾 Movimientos</button>
       <button data-a="restock">📦 Restock</button>
       <button data-a="usuarios">👥 Usuarios</button>
       <button data-a="catalogo">📦 Catálogo</button>
@@ -196,6 +204,7 @@ a{color:var(--brand)}
     <div id="a-resumen"></div>
     <div id="a-recargas" class="hide"></div>
     <div id="a-banco" class="hide"></div>
+    <div id="a-movs" class="hide"></div>
     <div id="a-restock" class="hide"></div>
     <div id="a-usuarios" class="hide"></div>
     <div id="a-catalogo" class="hide"></div>
@@ -221,7 +230,8 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 22;
+const EXPECTED_API = 24;
+const APP_VERSION = 32; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -353,7 +363,7 @@ async function boot() {
     $('hWho').textContent = ((b.user.nombre || '') + ' ' + (b.user.apellido || '')).trim() || b.user.email;
     if (b.user.esAdmin) $('hWho').textContent += ' · admin';
     setSaldo(b.user.saldo);
-    const chip = $('chipver'); chip.textContent = 'Motor API: v' + b.version + (b.version === EXPECTED_API ? ' ✓' : ' ⚠ (app espera v' + EXPECTED_API + ')');
+    const chip = $('chipver'); chip.textContent = 'App v' + APP_VERSION + ' · Motor API: v' + b.version + (b.version === EXPECTED_API ? ' ✓' : ' ⚠ (app espera v' + EXPECTED_API + ')');
     chip.classList.toggle('bad', b.version !== EXPECTED_API);
     if (b.user.esAdmin) $('tabAdmin').classList.remove('hide');
     cartLoad(); renderChips(); renderGrid(); renderCartBar();
@@ -425,14 +435,17 @@ function renderGrid() {
     .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nombre.localeCompare(b.nombre));
   $('noprod').classList.toggle('hide', list.length > 0);
   const grid = $('grid'); const vivos = {};
+  // El DOM no se toca después de crear cada tarjeta: el orden se da con CSS (order) y el filtro con display:none.
+  // Así ningún navegador (Safari incluido) tiene motivo para volver a pedir la foto.
   list.forEach((p, i) => {
     let card = _cards[p.sku];
-    if (!card) { card = buildCard(p); _cards[p.sku] = card; }
+    if (!card) { card = buildCard(p); _cards[p.sku] = card; grid.appendChild(card); }
     updateCard(card, p);
-    if (grid.children[i] !== card) grid.insertBefore(card, grid.children[i] || null); // mover el nodo no recarga la foto
+    if (card.style.order !== String(i)) card.style.order = i;
+    if (card.style.display) card.style.display = '';
     vivos[p.sku] = 1;
   });
-  Array.from(grid.children).forEach(c => { if (!vivos[c.dataset.sku]) c.remove(); }); // filtrados: se quitan pero su tarjeta queda en memoria
+  Object.keys(_cards).forEach(sku => { if (!vivos[sku]) { const c = _cards[sku]; if (S.catalogo.some(p => p.sku === sku)) { if (c.style.display !== 'none') c.style.display = 'none'; } else { c.remove(); delete _cards[sku]; } } });
 }
 function buildCard(p) {
   const d = document.createElement('div'); d.className = 'prod'; d.dataset.sku = p.sku;
@@ -530,8 +543,9 @@ async function loadHistorial() {
   try {
     const h = await call('apiHistorial');
     setSaldo(h.saldo);
-    $('hisCompras').innerHTML = h.compras.length ? h.compras.map(c => `<div class="mov"><div><div class="b">${esc(c.fecha)}</div>
-      <div class="small muted">${c.items.map(i => i.cantidad + '× ' + esc(i.nombre) + (i.ubicacion ? ' <span class="ubic">📍 ' + esc(i.ubicacion) + '</span>' : '')).join(', ')}</div></div><div class="m neg">−${money(c.total)}</div></div>`).join('') : '<div class="empty">Aún no has comprado.</div>';
+    $('hisCompras').innerHTML = h.compras.length ? h.compras.map(c => `<div class="compra">
+      <div class="compra-h"><span class="b">🛍️ ${esc(c.fecha)}</span><span class="m neg">−${money(c.total)}</span></div>
+      <ul class="compra-items">${c.items.map(i => `<li><span class="q">${i.cantidad}×</span> ${esc(i.nombre)}${i.ubicacion ? ` <span class="ubic">📍 ${esc(i.ubicacion)}</span>` : ''}<span class="sub">${money(i.subtotal)}</span></li>`).join('')}</ul></div>`).join('') : '<div class="empty">Aún no has comprado.</div>';
     $('hisRecargas').innerHTML = h.recargas.length ? h.recargas.map(r => `<div class="mov"><div><div class="b">${esc(r.fecha)} <span class="badge ${esc(r.estado)}">${esc(estadoTxt(r.estado))}</span></div>
       ${r.nota_admin ? `<div class="small muted">${esc(r.nota_admin)}</div>` : ''}</div><div class="m ${r.estado === 'rechazada' ? '' : 'pos'}">${money(r.monto)}</div></div>`).join('') : '<div class="empty">Sin recargas.</div>';
     $('hisMovs').innerHTML = h.movimientos.length ? h.movimientos.map(m => `<div class="mov"><div><div>${esc(m.detalle || m.tipo)}</div><div class="small muted">${esc(m.fecha)} · saldo ${money(m.saldo_despues)}</div></div>
@@ -611,8 +625,8 @@ $('asubs').querySelectorAll('button').forEach(b => b.onclick = () => adminShow(b
 function adminShow(sub) {
   S.admin.sub = sub;
   $('asubs').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.a === sub));
-  ['resumen', 'recargas', 'banco', 'restock', 'usuarios', 'catalogo', 'factura', 'reportes'].forEach(x => $('a-' + x).classList.toggle('hide', x !== sub));
-  ({ resumen: aResumen, recargas: aRecargas, banco: aBanco, restock: aRestock, usuarios: aUsuarios, catalogo: aCatalogo, factura: aFactura, reportes: aReportes })[sub]();
+  ['resumen', 'recargas', 'banco', 'movs', 'restock', 'usuarios', 'catalogo', 'factura', 'reportes'].forEach(x => $('a-' + x).classList.toggle('hide', x !== sub));
+  ({ resumen: aResumen, recargas: aRecargas, banco: aBanco, movs: aMovs, restock: aRestock, usuarios: aUsuarios, catalogo: aCatalogo, factura: aFactura, reportes: aReportes })[sub]();
 }
 
 async function aResumen() {
@@ -699,8 +713,8 @@ async function aBanco() {
   let sin = [];
   try { sin = await gs('apiAdminBanco', false); } catch (e) {}
   $('a-banco').innerHTML = `<div class="card"><h3>🏦 Cruce con el estado de cuenta</h3>
-    <p class="small muted" style="margin-top:0">Sube el estado de cuenta del banco (Excel .xlsx/.xls o CSV) o pega las filas. Solo se usan los <b>créditos</b> (depósitos / transferencias recibidas). El sistema cruza cada crédito con una recarga preaprobada del <b>mismo monto</b> cuya hora de pago esté dentro de la tolerancia configurada (Config → CRUCE_TOLERANCIA_MIN, ±15 min por defecto; si el banco no trae hora, mismo día). Lo que cruza pasa a <span class="badge cruzada">confirmada</span>; lo que no, queda abajo para vincularlo a mano.</p>
-    <div class="file" onclick="document.getElementById('bkFile').click()"><div id="bkFileTxt">📎 Toca para elegir el estado de cuenta (xlsx / csv)</div><input id="bkFile" type="file" accept=".xlsx,.xls,.csv,text/csv" onchange="leerBanco(this)"></div>
+    <p class="small muted" style="margin-top:0">Sube el estado de cuenta del banco (<b>PDF</b> de Deuna/Pichincha "Descarga de movimientos", Excel .xlsx/.xls o CSV) o pega las filas. Solo se usan los <b>créditos</b> (depósitos / transferencias recibidas). El sistema cruza cada crédito con una recarga preaprobada del <b>mismo monto</b> cuya hora de pago esté dentro de la tolerancia configurada (Config → CRUCE_TOLERANCIA_MIN, ±15 min por defecto; si el banco no trae hora, mismo día). Lo que cruza pasa a <span class="badge cruzada">confirmada</span>; lo que no, queda abajo para vincularlo a mano.</p>
+    <div class="file" onclick="document.getElementById('bkFile').click()"><div id="bkFileTxt">📎 Toca para elegir el estado de cuenta (PDF / xlsx / csv)</div><input id="bkFile" type="file" accept=".pdf,application/pdf,.xlsx,.xls,.csv,text/csv" onchange="leerBanco(this)"></div>
     <div class="row" style="margin-top:10px"><button class="sec" onclick="pegarBanco()">Pegar filas</button></div>
     <div id="bkPreview"></div></div>
     <div id="bkResult"></div>
@@ -726,10 +740,17 @@ let bkRows = null; // filas crudas (array de arrays)
 function leerBanco(input) {
   const f = input.files[0]; if (!f) return;
   $('bkFileTxt').textContent = '⏳ Leyendo ' + f.name + '…';
-  const esCsv = /\.csv$/i.test(f.name) || f.type === 'text/csv';
+  const esCsv = /\.csv$/i.test(f.name) || f.type === 'text/csv', esPdf = /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
   const r = new FileReader();
-  r.onload = () => {
+  r.onload = async () => {
     try {
+      if (esPdf) {
+        if (typeof pdfjsLib === 'undefined') throw new Error('No se pudo cargar el lector de PDF (sin conexión a cdnjs).');
+        const p = await leerBancoPDF(r.result); bkRows = p.rows; S.admin.bkMeta = p.meta;
+        if (bkRows.length < 2) throw new Error('No encontré movimientos en el PDF (¿es el "Detalle de movimientos" del banco?).');
+        $('bkFileTxt').textContent = '✅ ' + f.name + ' · ' + (bkRows.length - 1) + ' movimientos · ' + [p.meta.banco, p.meta.titular, p.meta.cuenta ? 'cta ' + p.meta.cuenta : '', p.meta.periodo].filter(Boolean).join(' · ');
+        renderBancoMap(); return;
+      }
       if (esCsv) bkRows = parseCSV(String(r.result));
       else {
         if (typeof XLSX === 'undefined') throw new Error('No se pudo cargar el lector de Excel (sin conexión a cdnjs). Exporta el estado de cuenta como CSV.');
@@ -742,6 +763,60 @@ function leerBanco(input) {
   };
   if (esCsv) r.readAsText(f, 'utf-8'); else r.readAsArrayBuffer(f);
 }
+// Lee un estado de cuenta en PDF (Deuna / Pichincha "Descarga de movimientos" y formatos parecidos) con pdf.js y devuelve
+// filas [Fecha, N° Documento, Descripción, Débito, Crédito, Saldo] (+ fila de títulos) para el mismo mapeo que xlsx/csv.
+// Método: ubica la fila de títulos por texto ("Fecha" … "Crédito"), toma la X de cada título como ancla de columna y agrupa
+// los textos por altura (misma línea). Cada fila que empieza con una fecha dd/mm/yyyy es un movimiento.
+async function leerBancoPDF(arrayBuffer) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const KEYS = [['fecha', /^fecha$/i], ['doc', /documento|referencia|comprobante|n[°º]/i], ['desc', /descripci|concepto|detalle/i], ['debito', /d[eé]bito|retiro|cargo/i], ['credito', /cr[eé]dito|dep[oó]sito|abono/i], ['saldo', /^saldo$/i]];
+  const out = [['Fecha', 'N° Documento', 'Descripción', 'Débito', 'Crédito', 'Saldo']];
+  const meta = { titular: '', cuenta: '', periodo: '', banco: '' };
+  let cols = null;
+  for (let pg = 1; pg <= pdf.numPages; pg++) {
+    const page = await pdf.getPage(pg); const tc = await page.getTextContent();
+    const cells = tc.items.filter(it => it.str.trim()).map(it => ({ x: it.transform[4], y: it.transform[5], w: it.width || 0, s: it.str.trim() }));
+    cells.sort((a, b) => b.y - a.y || a.x - b.x);
+    if (pg === 1) {
+      const flat = cells.map(c => c.s).join(' ');
+      let m = /Cuenta:?\s*(\d{6,})/i.exec(flat); if (m) meta.cuenta = m[1];
+      m = /Periodo\s+del\s+(\d{2}\/\d{2}\/\d{4})\s+hasta\s+el\s+(\d{2}\/\d{2}\/\d{4})/i.exec(flat); if (m) meta.periodo = m[1] + ' – ' + m[2];
+      if (/deuna/i.test(flat)) meta.banco = 'Deuna'; else if (/pichincha/i.test(flat)) meta.banco = 'Pichincha'; else if (/produbanco/i.test(flat)) meta.banco = 'Produbanco'; else if (/guayaquil/i.test(flat)) meta.banco = 'Guayaquil';
+      const iCta = cells.findIndex(c => /^Cuenta:/i.test(c.s)); if (iCta > 0) { const arriba = cells.filter(c => c.y > cells[iCta].y && c.x < 200 && /^[A-ZÁÉÍÓÚÑ ]{6,}$/.test(c.s)); if (arriba.length) meta.titular = arriba[arriba.length - 1].s; }
+    }
+    // fila de títulos (en cada página puede repetirse)
+    const iF = cells.findIndex(c => /^fecha$/i.test(c.s));
+    if (iF >= 0) {
+      const yh = cells[iF].y; const band = cells.filter(c => Math.abs(c.y - yh) <= 4);
+      const found = {};
+      band.forEach(c => KEYS.forEach(([k, re]) => { if (found[k] === undefined && re.test(c.s)) found[k] = { x: c.x, xr: c.x + c.w }; }));
+      if (found.fecha && (found.credito || found.debito)) cols = found;
+    }
+    if (!cols) continue;
+    // agrupar por línea
+    const lineas = [];
+    cells.forEach(c => { const l = lineas.find(L => Math.abs(L.y - c.y) <= 3); if (l) l.items.push(c); else lineas.push({ y: c.y, items: [c] }); });
+    lineas.forEach(L => {
+      L.items.sort((a, b) => a.x - b.x);
+      const first = L.items[0];
+      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(first.s)) return; // solo filas que empiezan con fecha
+      const centros = Object.keys(cols).map(k => ({ k, x: cols[k].x, xr: cols[k].xr }));
+      const colDe = c => { // números (débito/crédito/saldo) alineados a la derecha: comparar por borde derecho; textos por borde izquierdo
+        const esNum = /^[\d.,\-]+$/.test(c.s); const cx = esNum ? c.x + c.w : c.x; let best = null, bd = 1e9;
+        centros.forEach(z => { const d = Math.abs((esNum ? z.xr : z.x) - cx); if (d < bd) { bd = d; best = z.k; } }); return best;
+      };
+      const row = { fecha: '', doc: '', desc: '', debito: '', credito: '', saldo: '' };
+      L.items.forEach(c => { const k = colDe(c); row[k] = (row[k] ? row[k] + ' ' : '') + c.s; });
+      // seguridad: los tres últimos números de la línea son débito, crédito, saldo aunque el centrado haya fallado
+      const nums = L.items.filter(c => /^[\d.]+,\d{2}$/.test(c.s) || /^\d+\.\d{2}$/.test(c.s));
+      if (nums.length >= 3) { const t = nums.slice(-3); row.debito = t[0].s; row.credito = t[1].s; row.saldo = t[2].s; }
+      out.push([row.fecha, row.doc, row.desc, row.debito, row.credito, row.saldo]);
+    });
+  }
+  return { rows: out, meta };
+}
+
 function parseCSV(txt) {
   const first = txt.split('\n')[0];
   const sep = first.indexOf('\t') >= 0 ? '\t' : ((first.match(/;/g) || []).length > (first.match(/,/g) || []).length ? ';' : ',');
@@ -836,6 +911,37 @@ async function doVincular(bancoId) { try { await call('apiAdminVincularBanco', b
 async function descartarBanco(id) { if (!confirm('¿Descartar este movimiento? No se volverá a mostrar.')) return; try { await call('apiAdminDescartarBanco', id); aBanco(); } catch (e) {} }
 
 /* --- Restock: interno (bodega → percha) y externo (recompra) --- */
+/* --- Movimientos: el mismo historial de la pestaña Movimientos del Sheet, para todos los usuarios --- */
+const MOV_LBL = { recarga: 'Recarga', compra: 'Compra', ajuste: 'Ajuste', reverso: 'Reverso', devolucion: 'Devolución' };
+async function aMovs(dias, tipo, email) {
+  if (dias === undefined) dias = S.admin.movDias === undefined ? 0 : S.admin.movDias; S.admin.movDias = dias;
+  if (tipo === undefined) tipo = S.admin.movTipo || 'todos'; S.admin.movTipo = tipo;
+  if (email === undefined) email = S.admin.movEmail || ''; S.admin.movEmail = email;
+  try {
+    const r = await call('apiAdminMovimientos', dias, email); S.admin.movs = r;
+    const lista = r.movimientos.filter(m => tipo === 'todos' || m.tipo === tipo);
+    const tipos = Object.keys(r.totales);
+    let dia = '';
+    const filas = lista.map(m => {
+      const cab = m.dia !== dia ? `<tr class="diarow"><td colspan="6">${esc(m.dia)}</td></tr>` : ''; dia = m.dia;
+      return cab + `<tr><td class="small muted" style="white-space:nowrap">${esc(m.fecha.slice(11) || m.fecha)}</td>
+        <td><div class="b">${esc(m.nombre || m.email)}</div><div class="small muted">${esc(m.email)}</div></td>
+        <td><span class="badge ${m.tipo === 'compra' ? 'rechazada' : m.tipo === 'recarga' ? 'cruzada' : 'pendiente'}">${esc(MOV_LBL[m.tipo] || m.tipo)}</span></td>
+        <td class="right b" style="color:${m.monto < 0 ? 'var(--danger)' : 'var(--ok)'}">${m.monto < 0 ? '−' : '+'}${money(Math.abs(m.monto))}</td>
+        <td class="small">${esc(m.detalle || '')}${m.referencia ? `<div class="muted">${esc(m.referencia)}</div>` : ''}</td>
+        <td class="right">${money(m.saldo_despues)}<div class="small muted">${esc(m.registrado_por || '')}</div></td></tr>`;
+    }).join('');
+    $('a-movs').innerHTML = `<div class="chips">${[[0, 'Hoy'], [7, '7 días'], [30, '30 días'], [-1, 'Todo']].map(d => `<button class="chip ${d[0] === dias ? 'on' : ''}" onclick="aMovs(${d[0]})">${d[1]}</button>`).join('')}</div>
+      <div class="chips" style="margin-top:6px">${['todos'].concat(tipos).map(t => `<button class="chip ${t === tipo ? 'on' : ''}" onclick="aMovs(undefined,'${esc(t)}')">${t === 'todos' ? 'Todos' : esc(MOV_LBL[t] || t)}</button>`).join('')}</div>
+      <div style="margin-top:6px"><select style="max-width:320px" onchange="aMovs(undefined,undefined,this.value)"><option value="">Todos los usuarios</option>${r.usuarios.map(u => `<option value="${esc(u.email)}" ${u.email === email ? 'selected' : ''}>${esc(u.nombre || u.email)}</option>`).join('')}</select></div>
+      <div class="kpis" style="margin-top:8px">
+        <div class="kpi"><div class="v" style="color:var(--ok)">+${money(r.entradas)}</div><div class="l">Recargas / entradas${r.desde ? ' desde ' + esc(r.desde.slice(0, 10)) : ''}</div></div>
+        <div class="kpi"><div class="v" style="color:var(--danger)">−${money(Math.abs(r.salidas))}</div><div class="l">Compras / salidas</div></div>
+        <div class="kpi"><div class="v">${money(r.entradas + r.salidas)}</div><div class="l">Neto del periodo</div></div>
+        <div class="kpi"><div class="v">${lista.length}</div><div class="l">Movimientos</div></div></div>
+      <div class="card"><h3>🧾 Movimientos</h3>${lista.length ? `<div class="tbl"><table><thead><tr><th>Hora</th><th>Usuario</th><th>Tipo</th><th class="right">Monto</th><th>Detalle</th><th class="right">Saldo después</th></tr></thead><tbody>${filas}</tbody></table></div>` : '<div class="empty">Sin movimientos en este periodo.</div>'}</div>`;
+  } catch (e) {}
+}
 async function aRestock() {
   try {
     const r = await call('apiAdminRestock'); S.admin.restock = r;
@@ -1424,8 +1530,9 @@ async function aReportes(dias) {
       <div class="card" style="margin-top:12px"><h3>Ventas por día</h3>${bars(r.porDia, 'dia', 'total', money)}</div>
       <div class="card"><h3>Ventas por categoría</h3>${bars(r.porCategoria, 'categoria', 'total', money)}</div>
       <div class="card"><h3>Top productos (unidades)</h3>${bars(r.topProductos, 'nombre', 'unidades', v => v + ' u')}</div>
-      <div class="card"><h3>Top compradores</h3>${bars(r.topUsuarios, 'email', 'total', money)}</div>
-      <div class="card"><h3>Saldos por usuario</h3><div class="tbl"><table><tbody>${r.saldos.map(u => `<tr><td>${esc(u.nombre)}<div class="small muted">${esc(u.email)}</div></td><td class="right b">${money(u.saldo)}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="card"><h3>Top compradores</h3>${bars(r.topUsuarios, 'nombre', 'total', money)}</div>
+      <div class="card"><h3>Saldos por usuario</h3><div class="tbl"><table><tbody>${r.saldos.map(u => `<tr><td>${esc(u.nombre)}<div class="small muted">${esc(u.email)}</div></td><td class="right b">${money(u.saldo)}</td></tr>`).join('')}
+        <tr class="diarow"><td>TOTAL acumulado en cuentas (${r.saldos.length} usuarios)</td><td class="right b" style="font-size:16px">${money(r.saldoTotal)}</td></tr></tbody></table></div></div>
       <p class="small muted">Para exportar: la hoja de Google Sheets es la base de datos completa (pestañas Ventas, Movimientos, Recargas).</p>`;
     if (r.analisis) {
       const A = r.analisis;
