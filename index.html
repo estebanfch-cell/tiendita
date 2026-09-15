@@ -50,7 +50,7 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .prod .stk{font-size:11px;color:var(--muted)}.prod .stk.low{color:var(--warn);font-weight:700}
 .ubic{display:inline-block;background:var(--brand);color:#fff;font-weight:800;font-size:11px;padding:2px 7px;border-radius:999px;letter-spacing:.3px}
 .ubic.none{background:#e5e7eb;color:#6b7280;font-weight:600}
-.ubic-sel{padding:6px 8px;width:76px;font-weight:700}
+.ubic-sel{padding:6px 8px;width:auto;min-width:76px;max-width:140px;font-weight:700}
 .qty{display:flex;align-items:center;gap:6px;margin-top:auto}
 .qty button{width:36px;height:36px;padding:0;border-radius:10px;font-size:20px;line-height:1;background:#e6eef8;color:var(--brand);box-shadow:none}
 .qty button.add{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}.qty span{min-width:26px;text-align:center;font-weight:700}
@@ -214,7 +214,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 19;
+const EXPECTED_API = 20;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -453,7 +453,7 @@ async function comprar() {
 function resumenCompra(r) {
   const items = r.items || [];
   modal(`<h3>✅ Compra realizada</h3>
-    <p class="small muted" style="margin:0 0 8px">Retira tus productos de la percha. El cuadrante te dice dónde está cada uno (columna 1-5, fila A-D).</p>
+    <p class="small muted" style="margin:0 0 8px">Retira tus productos de la percha. El cuadrante te dice dónde está cada uno (columna + fila, ej. 3C), o si está en la refrigeradora / congeladora.</p>
     ${items.map(i => `<div class="line"><div class="nm">${i.cantidad}× ${esc(i.nombre)}</div>
       <div>${i.ubicacion ? `<span class="ubic">📍 ${esc(i.ubicacion)}</span>` : '<span class="ubic none">sin cuadrante</span>'}</div>
       <div class="sub">${money(i.subtotal)}</div></div>`).join('')}
@@ -790,7 +790,7 @@ async function aRestock() {
         <div id="recPanel"></div>
         ${R.sinDatos.length ? `<div class="small muted" style="margin-top:8px">${R.sinDatos.length} producto(s) nuevos sin historial todavía.</div>` : ''}</div>
       <div class="card"><h3>🔄 Restock interno — sacar de bodega a percha</h3>
-        ${r.interno.length ? `<p class="small muted" style="margin:0 0 8px">📍 <b>Cuadrante</b> = dónde va el producto en la percha (columna 1-${(r.ubicaciones || {}).columnas ? r.ubicaciones.columnas.length : 5} × fila A-${(r.ubicaciones || {}).filas ? r.ubicaciones.filas.slice(-1)[0] : 'D'}). Ponlo <b>antes</b> de pasar el producto de bodega a percha; los usuarios lo ven en la tienda y en el resumen de su compra.</p>
+        ${r.interno.length ? `<p class="small muted" style="margin:0 0 8px">📍 <b>Cuadrante</b> = dónde va el producto en la percha (columna 1-${(r.ubicaciones || {}).columnas ? r.ubicaciones.columnas.length : 5} × fila A-${(r.ubicaciones || {}).filas ? r.ubicaciones.filas.slice(-1)[0] : 'D'}). ${(r.ubicaciones || {}).extras && r.ubicaciones.extras.length ? ' Además: ' + r.ubicaciones.extras.map(esc).join(', ') + '.' : ''} Ponlo <b>antes</b> de pasar el producto de bodega a percha; los usuarios lo ven en la tienda y en el resumen de su compra.</p>
           <div class="tbl"><table><thead><tr><th>✓</th><th>Producto</th><th>📍 Cuadrante</th><th class="right">Percha</th><th class="right">Objetivo</th><th class="right">Bodega</th><th class="right">Sacar</th></tr></thead><tbody>
           ${r.interno.map((it, i) => `<tr><td><input type="checkbox" class="rsChk" data-i="${i}" ${it.mover > 0 ? 'checked' : 'disabled'} style="width:auto"></td>
             <td><div class="b">${esc(it.nombre)}</div><div class="small muted">${esc(it.sku)} · vende ${it.consumo_semanal}/sem${it.lote_total ? ' · lote ' + it.lote_total : ''}${it.sin_bodega ? ' · <span style="color:var(--danger)">bodega vacía</span>' : ''}</div></td>
