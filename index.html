@@ -214,7 +214,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 18;
+const EXPECTED_API = 19;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -783,8 +783,8 @@ async function aRestock() {
     const c = r.config;
     const R = r.recomendaciones || { comprarMas: [], comprarMenos: [], noRecomprar: [], sinDatos: [], top: [] };
     $('a-restock').innerHTML = `<div class="card" style="padding:10px 14px"><div class="row wrap"><div class="small"><b>📊 Análisis automático</b> · último cálculo: ${esc(r.ultimoAnalisis || 'aún no corrió')} · ${r.triggerActivo ? '⏱ se recalcula cada hora' : '<span style="color:var(--warn)">⚠ trigger horario no instalado (corre setupTiendita)</span>'}</div><button class="small sec" style="flex:0 0 auto" onclick="recalcular()">🔄 Actualizar (releer Config y recalcular)</button></div>
-      <p class="small muted" style="margin:6px 0 0"><b>Configuración en uso:</b> percha = <b>${fracTxt(c.fraccion_percha)}</b> del stock (Config → FRACCION_PERCHA = "${esc(String(c.fraccion_texto || ''))}") · DIAS_PERCHA <b>${c.percha}</b> · DIAS_MINIMO <b>${c.minimo}</b> · DIAS_COMPRA <b>${c.compra}</b> · ingreso de facturas a ${c.ingreso_a_bodega ? '<b>bodega</b>' : 'percha/bodega'}. SEMANAS_COBERTURA y SEMANAS_HISTORIAL ya no se usan.</p>
-      <p class="small muted" style="margin:6px 0 0">Mínimo dinámico = consumo diario × <b>${c.minimo}</b> días. Objetivo de percha = máx(${fracTxt(c.fraccion_percha)} del stock, consumo × <b>${c.percha}</b> días). Recompra sugerida para cubrir <b>${c.compra}</b> días. Si fijas un mínimo u objetivo manual en Catálogo → ✏️, ese manda. La mercadería nueva entra a bodega y aquí ves cuánto pasar a percha.</p></div>
+      <p class="small muted" style="margin:6px 0 0"><b>Configuración en uso:</b> cada lote sale a percha en <b>${c.sacadas || Math.round(1 / c.fraccion_percha)} sacadas parejas</b> (${fracTxt(c.fraccion_percha)} por vez; Config → FRACCION_PERCHA = "${esc(String(c.fraccion_texto || ''))}") · DIAS_PERCHA <b>${c.percha}</b> · DIAS_MINIMO <b>${c.minimo}</b> · DIAS_COMPRA <b>${c.compra}</b> · ingreso de facturas a ${c.ingreso_a_bodega ? '<b>bodega</b>' : 'percha/bodega'}. SEMANAS_COBERTURA y SEMANAS_HISTORIAL ya no se usan.</p>
+      <p class="small muted" style="margin:6px 0 0">Mínimo dinámico = consumo diario × <b>${c.minimo}</b> días. Objetivo de percha = máx(sacada que toca del lote, consumo × <b>${c.percha}</b> días). El lote (stock al último ingreso) se divide en ${c.sacadas || Math.round(1 / c.fraccion_percha)} partes parejas: 10 u. a ⅓ → 4, 3, 3 (no siempre "para arriba"). Recompra sugerida para cubrir <b>${c.compra}</b> días. Si fijas un mínimo u objetivo manual en Catálogo → ✏️, ese manda. La mercadería nueva entra a bodega y aquí ves cuánto pasar a percha.</p></div>
       <div class="card"><h3>🧭 Recomendaciones de compra</h3>
         <div class="recbtns" id="recBtns"></div>
         <div id="recPanel"></div>
@@ -793,7 +793,7 @@ async function aRestock() {
         ${r.interno.length ? `<p class="small muted" style="margin:0 0 8px">📍 <b>Cuadrante</b> = dónde va el producto en la percha (columna 1-${(r.ubicaciones || {}).columnas ? r.ubicaciones.columnas.length : 5} × fila A-${(r.ubicaciones || {}).filas ? r.ubicaciones.filas.slice(-1)[0] : 'D'}). Ponlo <b>antes</b> de pasar el producto de bodega a percha; los usuarios lo ven en la tienda y en el resumen de su compra.</p>
           <div class="tbl"><table><thead><tr><th>✓</th><th>Producto</th><th>📍 Cuadrante</th><th class="right">Percha</th><th class="right">Objetivo</th><th class="right">Bodega</th><th class="right">Sacar</th></tr></thead><tbody>
           ${r.interno.map((it, i) => `<tr><td><input type="checkbox" class="rsChk" data-i="${i}" ${it.mover > 0 ? 'checked' : 'disabled'} style="width:auto"></td>
-            <td><div class="b">${esc(it.nombre)}</div><div class="small muted">${esc(it.sku)} · vende ${it.consumo_semanal}/sem${it.sin_bodega ? ' · <span style="color:var(--danger)">bodega vacía</span>' : ''}</div></td>
+            <td><div class="b">${esc(it.nombre)}</div><div class="small muted">${esc(it.sku)} · vende ${it.consumo_semanal}/sem${it.lote_total ? ' · lote ' + it.lote_total : ''}${it.sin_bodega ? ' · <span style="color:var(--danger)">bodega vacía</span>' : ''}</div></td>
             <td>${selUbic('rsUb_' + i, it.ubicacion, r.ubicaciones)}</td>
             <td class="right" style="color:var(--warn);font-weight:700">${it.percha}</td><td class="right">${it.objetivo}</td><td class="right">${it.bodega}</td>
             <td class="right"><input type="number" min="0" max="${it.bodega}" value="${it.mover}" id="rsMov_${i}" style="width:70px;padding:6px 8px"></td></tr>`).join('')}</tbody></table></div>
@@ -966,7 +966,7 @@ function editProd(sku) {
     ${sku ? `<div class="row"><div><label>Stock en percha (conteo)</label><input id="pePer" type="number" min="0" value="${p.stock_percha}"></div><div><label>Stock en bodega (conteo)</label><input id="peBod" type="number" min="0" value="${p.stock_bodega}"></div></div>
              <div class="small muted">Total actual ${p.stock}. Cambia estos solo si hiciste conteo físico.</div>`
           : `<label>Empaques comprados (stock inicial = empaques × unidades)</label><input id="peEmp" type="number" min="0" value="0">`}
-    <div class="row"><div><label>Objetivo en percha (u.)</label><input id="peObj" type="number" min="0" placeholder="auto = ¼ del stock" value="${p.percha_objetivo === null || p.percha_objetivo === undefined ? '' : p.percha_objetivo}"></div>
+    <div class="row"><div><label>Objetivo en percha (u.)</label><input id="peObj" type="number" min="0" placeholder="auto (sacadas parejas)" value="${p.percha_objetivo === null || p.percha_objetivo === undefined ? '' : p.percha_objetivo}"></div>
       <div><label>Stock mínimo antes de recomprar (u.)</label><input id="peMin" type="number" min="0" placeholder="por defecto ${5}" value="${p.stock_minimo === null || p.stock_minimo === undefined ? '' : p.stock_minimo}"></div></div>
     <div class="row"><div><label>Código del proveedor (de la factura)</label><input id="peCP" value="${esc(p.codigo_proveedor || '')}"></div>
       <div style="flex:0 0 130px"><label>📍 Cuadrante en percha</label>${selUbic('peUb', p.ubicacion || '', S.admin.ubicaciones)}</div></div>
