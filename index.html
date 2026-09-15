@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v17.html (GitHub Pages) — espera Motor API v15. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v18.html (GitHub Pages) — espera Motor API v15. Recomendaciones como botones desplegables. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -83,6 +83,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;b
 .chipver{position:fixed;left:10px;bottom:70px;font-size:10px;color:var(--muted);background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:999px;padding:2px 8px;z-index:21}
 .chipver.bad{color:var(--danger);border-color:var(--danger)}
 .empty{text-align:center;color:var(--muted);padding:30px 10px}
+.recbtns{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.recbtn{background:#fff;border:2px solid var(--line);border-radius:14px;padding:12px 10px;text-align:left;color:var(--ink);box-shadow:none;display:flex;flex-direction:column;gap:2px}
+.recbtn .n{font-size:24px;font-weight:800}.recbtn .l{font-size:12px;color:var(--muted);font-weight:600}.recbtn .ar{font-size:11px;color:var(--muted);margin-top:4px}
+.recbtn.mas .n{color:var(--danger)}.recbtn.menos .n{color:var(--warn)}.recbtn.no .n{color:#6b7280}.recbtn.top .n{color:var(--ok)}
+.recbtn.on{border-color:var(--brand);background:linear-gradient(160deg,#fff,#eef4fb)}
+.recpanel{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
 #login{position:fixed;inset:0;background:radial-gradient(600px 400px at 15% 10%,#ffffff 0%,rgba(255,255,255,0) 60%),radial-gradient(700px 500px at 90% 90%,#cfe3fa 0%,rgba(207,227,250,0) 60%) #e9f1fb;z-index:65;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
 #login .box{background:rgba(255,255,255,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.9);border-radius:22px;padding:22px 18px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(54,94,130,.22)}
 #login h2{margin:0 0 2px;color:var(--brand);font-size:18px;text-align:center}#login .sub{color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center}
@@ -761,14 +767,9 @@ async function aRestock() {
     $('a-restock').innerHTML = `<div class="card" style="padding:10px 14px"><div class="row wrap"><div class="small"><b>📊 Análisis automático</b> · último cálculo: ${esc(r.ultimoAnalisis || 'aún no corrió')} · ${r.triggerActivo ? '⏱ se recalcula cada hora' : '<span style="color:var(--warn)">⚠ trigger horario no instalado (corre setupTiendita)</span>'}</div><button class="small sec" style="flex:0 0 auto" onclick="recalcular()">🔄 Recalcular ahora</button></div>
       <p class="small muted" style="margin:6px 0 0">Mínimo dinámico = consumo diario × <b>${c.minimo}</b> días (Config → DIAS_MINIMO). Objetivo de percha = máx(¼ del stock, consumo × <b>${c.percha}</b> días). Recompra sugerida para cubrir <b>${c.compra}</b> días. Si fijas un mínimo u objetivo manual en Catálogo → ✏️, ese manda. La mercadería nueva entra a bodega y aquí ves cuánto pasar a percha.</p></div>
       <div class="card"><h3>🧭 Recomendaciones de compra</h3>
-        <div class="kpis"><div class="kpi"><div class="v" style="color:var(--danger)">${R.comprarMas.length}</div><div class="l">Comprar más (bajo mínimo)</div></div>
-          <div class="kpi"><div class="v" style="color:var(--warn)">${R.comprarMenos.length}</div><div class="l">Comprar menos (sobre-stock)</div></div>
-          <div class="kpi"><div class="v">${R.noRecomprar.length}</div><div class="l">No recomprar (no rota)</div></div>
-          <div class="kpi"><div class="v" style="color:var(--ok)">${R.top.length}</div><div class="l">⭐ Top rotación</div></div></div>
-        ${R.top.length ? `<div class="small" style="margin-top:10px"><b>⭐ Lo que más se vende (15 días):</b> ${R.top.map(t => esc(t.nombre) + ' (' + t.ventas_15d + ' u.)').join(' · ')}</div>` : ''}
-        ${R.comprarMenos.length ? `<div class="small" style="margin-top:6px"><b>Comprar menos:</b> ${R.comprarMenos.map(t => esc(t.nombre) + ' (cubre ' + t.dias_cobertura + ' d)').join(' · ')}</div>` : ''}
-        ${R.noRecomprar.length ? `<div class="small" style="margin-top:6px"><b>No recomprar:</b> ${R.noRecomprar.map(t => esc(t.nombre) + (t.ultima_venta ? ' (última venta ' + esc(t.ultima_venta) + ')' : ' (nunca vendido)')).join(' · ')}</div>` : ''}
-        ${R.sinDatos.length ? `<div class="small muted" style="margin-top:6px">${R.sinDatos.length} producto(s) nuevos sin historial todavía.</div>` : ''}</div>
+        <div class="recbtns" id="recBtns"></div>
+        <div id="recPanel"></div>
+        ${R.sinDatos.length ? `<div class="small muted" style="margin-top:8px">${R.sinDatos.length} producto(s) nuevos sin historial todavía.</div>` : ''}</div>
       <div class="card"><h3>🔄 Restock interno — sacar de bodega a percha</h3>
         ${r.interno.length ? `<div class="tbl"><table><thead><tr><th>✓</th><th>Producto</th><th class="right">Percha</th><th class="right">Objetivo</th><th class="right">Bodega</th><th class="right">Sacar</th></tr></thead><tbody>
           ${r.interno.map((it, i) => `<tr><td><input type="checkbox" class="rsChk" data-i="${i}" ${it.mover > 0 ? 'checked' : 'disabled'} style="width:auto"></td>
@@ -787,8 +788,29 @@ async function aRestock() {
         : '<div class="empty">Nada por recomprar por ahora.</div>'}</div>
       <div class="card"><h3>Estado por producto (ordenado por rotación)</h3><div class="tbl"><table><thead><tr><th>#</th><th>Producto</th><th class="right">Percha</th><th class="right">Bodega</th><th class="right">Total</th><th class="right">Vende/día</th><th class="right">Mínimo</th><th class="right">Cubre</th><th>Recomendación</th></tr></thead><tbody>
         ${r.todos.map(it => `<tr><td class="small muted">${it.rank_rotacion}${it.top ? ' ⭐' : ''}</td><td>${esc(it.nombre)}<div class="small muted">${esc(it.sku)}</div></td><td class="right">${it.percha}<span class="small muted">/${it.objetivo}</span></td><td class="right">${it.bodega}</td><td class="right b">${it.stock}</td><td class="right">${it.consumo_diario}</td><td class="right">${it.minimo}${it.minimo_manual !== null && it.minimo_manual !== undefined ? '<span class="small muted"> (manual)</span>' : ''}</td><td class="right">${it.dias_cobertura === null ? '—' : it.dias_cobertura + ' d'}</td><td><span class="badge ${it.recomendacion === 'COMPRAR MÁS' ? 'rechazada' : it.recomendacion === 'COMPRAR MENOS' ? 'pendiente' : it.recomendacion === 'MANTENER' ? 'cruzada' : 'descartado'}">${esc(it.recomendacion)}</span><div class="small muted">${esc(it.motivo || '')}</div></td></tr>`).join('')}</tbody></table></div></div>`;
+    renderRecBtns();
   } catch (e) {}
 }
+// Botones de recomendaciones: uno abierto a la vez, con su tabla ordenada debajo (toca de nuevo para esconder)
+const REC_DEFS = [
+  { k: 'comprarMas', cls: 'mas', label: 'Comprar más', sub: 'bajo mínimo', cols: ['Producto', 'Stock', 'Mínimo', 'Cubre', 'Comprar', 'Costo est.'],
+    row: t => [nom(t), t.stock, t.minimo, dias(t.dias_cobertura), `<b>${t.empaques_sugeridos}</b> emp. <span class="small muted">(${t.empaques_sugeridos * t.unid_por_empaque} u.)</span>`, money(t.costo_estimado)] },
+  { k: 'comprarMenos', cls: 'menos', label: 'Comprar menos', sub: 'sobre-stock', cols: ['Producto', 'Stock', 'Vende/día', 'Cubre', 'Motivo'],
+    row: t => [nom(t), t.stock, t.consumo_diario, dias(t.dias_cobertura), `<span class="small muted">${esc(t.motivo || '')}</span>`] },
+  { k: 'noRecomprar', cls: 'no', label: 'No recomprar', sub: 'no rota', cols: ['Producto', 'Stock', 'Últ. venta', 'Motivo'],
+    row: t => [nom(t), t.stock, t.ultima_venta ? esc(t.ultima_venta) : '<span class="muted">nunca</span>', `<span class="small muted">${esc(t.motivo || '')}</span>`] },
+  { k: 'top', cls: 'top', label: '⭐ Top rotación', sub: 'lo que más se vende', cols: ['#', 'Producto', '15 d', '30 d', 'Vende/día', 'Ingreso 15 d', 'Margen u.'],
+    row: t => [t.rank_rotacion, nom(t), t.ventas_15d, t.ventas_30d, t.consumo_diario, money(t.ingreso_15d), money(t.margen_unit)] }
+];
+const nom = t => `<div class="b">${esc(t.nombre)}</div><div class="small muted">${esc(t.sku)}</div>`;
+const dias = d => d === null || d === undefined ? '—' : d + ' d';
+function renderRecBtns() {
+  const R = (S.admin.restock && S.admin.restock.recomendaciones) || {}; const open = S.admin.recOpen;
+  $('recBtns').innerHTML = REC_DEFS.map(d => `<button class="recbtn ${d.cls} ${open === d.k ? 'on' : ''}" onclick="toggleRec('${d.k}')"><span class="n">${(R[d.k] || []).length}</span><span class="l">${d.label}</span><span class="ar">${d.sub} ${open === d.k ? '▲ ocultar' : '▼ ver'}</span></button>`).join('');
+  const d = REC_DEFS.find(x => x.k === open); const list = d ? (R[d.k] || []) : [];
+  $('recPanel').innerHTML = !d ? '' : `<div class="recpanel">${list.length ? `<div class="tbl"><table><thead><tr>${d.cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${list.map(t => `<tr>${d.row(t).map((c, i) => `<td class="${i > 0 && d.k !== 'top' ? 'right' : ''}">${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : `<div class="empty">Nada en "${d.label}" por ahora.</div>`}</div>`;
+}
+function toggleRec(k) { S.admin.recOpen = S.admin.recOpen === k ? null : k; renderRecBtns(); }
 async function recalcular() { try { const r = await call('apiAdminRecalcularAnalisis'); toast('📊 Análisis recalculado (' + r.productos + ' productos)', 'ok'); aRestock(); } catch (e) {} }
 async function aplicarRestock() {
   const r = S.admin.restock; const items = [];
@@ -1257,17 +1279,24 @@ async function aReportes(dias) {
         <div class="kpi"><div class="v">${money(r.valorInventarioVenta)}</div><div class="l">Inventario a precio venta</div></div>
         <div class="kpi"><div class="v">${money(r.valorInventarioCosto)}</div><div class="l">Inventario a costo</div></div></div>
       ${r.analisis ? `<div class="card" style="margin-top:12px"><h3>🧭 Recomendaciones de compra <span class="small muted">(análisis ${esc(r.analisis.ultimo || r.analisis.fecha)})</span></h3>
-        ${r.analisis.top.length ? `<div class="small"><b>⭐ Mejores productos (15 días):</b> ${r.analisis.top.map(t => esc(t.nombre) + ' · ' + t.ventas_15d + ' u. · ' + money(t.ingreso_15d)).join(' | ')}</div>` : '<div class="small muted">Aún no hay ventas suficientes para ranking.</div>'}
-        ${r.analisis.comprarMas.length ? `<div class="small" style="margin-top:8px;color:var(--danger)"><b>Comprar más:</b> ${r.analisis.comprarMas.map(t => esc(t.nombre) + ' (stock ' + t.stock + ' / mín ' + t.minimo + ' → ' + t.empaques + ' emp., ' + money(t.costo) + ')').join(' · ')}</div>` : ''}
-        ${r.analisis.comprarMenos.length ? `<div class="small" style="margin-top:8px;color:var(--warn)"><b>Comprar menos:</b> ${r.analisis.comprarMenos.map(t => esc(t.nombre) + ' (cubre ' + t.dias + ' d)').join(' · ')}</div>` : ''}
-        ${r.analisis.noRecomprar.length ? `<div class="small" style="margin-top:8px"><b>No recomprar (no rota):</b> ${r.analisis.noRecomprar.map(t => esc(t.nombre) + ' (stock ' + t.stock + ')').join(' · ')}</div>` : ''}
-        <details style="margin-top:8px"><summary class="small muted">Ver rotación completa</summary><div class="tbl"><table><thead><tr><th>Producto</th><th class="right">15 d</th><th class="right">30 d</th><th class="right">u/día</th><th class="right">Cubre</th><th>Rec.</th></tr></thead><tbody>${r.analisis.rotacion.map(t => `<tr><td>${t.top ? '⭐ ' : ''}${esc(t.nombre)}</td><td class="right">${t.v15}</td><td class="right">${t.v30}</td><td class="right">${t.consumo}</td><td class="right">${t.dias === null ? '—' : t.dias + ' d'}</td><td class="small">${esc(t.rec)}</td></tr>`).join('')}</tbody></table></div></details></div>` : ''}
+        <div class="recbtns" id="recBtns"></div><div id="recPanel"></div>
+        <details style="margin-top:10px"><summary class="small muted">Ver rotación completa</summary><div class="tbl"><table><thead><tr><th>Producto</th><th class="right">15 d</th><th class="right">30 d</th><th class="right">u/día</th><th class="right">Cubre</th><th>Rec.</th></tr></thead><tbody>${r.analisis.rotacion.map(t => `<tr><td>${t.top ? '⭐ ' : ''}${esc(t.nombre)}</td><td class="right">${t.v15}</td><td class="right">${t.v30}</td><td class="right">${t.consumo}</td><td class="right">${t.dias === null ? '—' : t.dias + ' d'}</td><td class="small">${esc(t.rec)}</td></tr>`).join('')}</tbody></table></div></details></div>` : ''}
       <div class="card" style="margin-top:12px"><h3>Ventas por día</h3>${bars(r.porDia, 'dia', 'total', money)}</div>
       <div class="card"><h3>Ventas por categoría</h3>${bars(r.porCategoria, 'categoria', 'total', money)}</div>
       <div class="card"><h3>Top productos (unidades)</h3>${bars(r.topProductos, 'nombre', 'unidades', v => v + ' u')}</div>
       <div class="card"><h3>Top compradores</h3>${bars(r.topUsuarios, 'email', 'total', money)}</div>
       <div class="card"><h3>Saldos por usuario</h3><div class="tbl"><table><tbody>${r.saldos.map(u => `<tr><td>${esc(u.nombre)}<div class="small muted">${esc(u.email)}</div></td><td class="right b">${money(u.saldo)}</td></tr>`).join('')}</tbody></table></div></div>
       <p class="small muted">Para exportar: la hoja de Google Sheets es la base de datos completa (pestañas Ventas, Movimientos, Recargas).</p>`;
+    if (r.analisis) {
+      const A = r.analisis;
+      S.admin.restock = { recomendaciones: {
+        comprarMas: A.comprarMas.map(t => ({ sku: t.sku, nombre: t.nombre, stock: t.stock, minimo: t.minimo, dias_cobertura: t.dias, empaques_sugeridos: t.empaques, unid_por_empaque: t.empaques ? Math.round((A.rotacion.find(x => x.sku === t.sku) || {}).u || 1) : 1, costo_estimado: t.costo })),
+        comprarMenos: A.comprarMenos.map(t => ({ sku: t.sku, nombre: t.nombre, stock: t.stock, dias_cobertura: t.dias, consumo_diario: (A.rotacion.find(x => x.sku === t.sku) || {}).consumo, motivo: 'cubre ' + t.dias + ' días' })),
+        noRecomprar: A.noRecomprar.map(t => ({ sku: t.sku, nombre: t.nombre, stock: t.stock, ultima_venta: t.ultima, motivo: 'sin ventas recientes' })),
+        top: A.top.map((t, i) => ({ sku: t.sku, nombre: t.nombre, rank_rotacion: i + 1, ventas_15d: t.ventas_15d, ventas_30d: (A.rotacion.find(x => x.sku === t.sku) || {}).v30, consumo_diario: (A.rotacion.find(x => x.sku === t.sku) || {}).consumo, ingreso_15d: t.ingreso_15d, margen_unit: t.margen_unit }))
+      } };
+      renderRecBtns();
+    }
   } catch (e) {}
 }
 
