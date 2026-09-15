@@ -214,7 +214,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 20;
+const EXPECTED_API = 21;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -837,12 +837,13 @@ const fracTxt = f => { const m = { 0.25: '¼', 0.3333: '⅓', 0.5: '½', 0.2: '�
 // Selector de cuadrante (columna 1-5 + fila A-D). ubic = {columnas, filas, todas}
 function selUbic(id, val, ubic) {
   const todas = (ubic && ubic.todas) || ['1A'];
-  return `<select id="${id}" class="ubic-sel" data-orig="${esc(val || '')}"><option value="">—</option>${todas.map(u => `<option ${u === val ? 'selected' : ''}>${u}</option>`).join('')}</select>`;
+  const v = String(val || '').toLowerCase(); // comparación sin mayúsculas: "CONGELADORA" también selecciona "Congeladora"
+  return `<select id="${id}" class="ubic-sel" data-orig="${esc(val || '')}"><option value="">—</option>${todas.map(u => `<option ${u.toLowerCase() === v ? 'selected' : ''}>${esc(u)}</option>`).join('')}</select>`;
 }
 // Cuadrantes cambiados en la tabla de restock interno (aunque no se mueva stock)
 function ubicacionesCambiadas() {
   const r = S.admin.restock; const out = [];
-  r.interno.forEach((it, i) => { const el = $('rsUb_' + i); if (el && el.value !== (el.dataset.orig || '')) out.push({ sku: it.sku, unidades: 0, ubicacion: el.value }); });
+  r.interno.forEach((it, i) => { const el = $('rsUb_' + i); if (el && el.value.toLowerCase() !== (el.dataset.orig || '').toLowerCase()) out.push({ sku: it.sku, unidades: 0, ubicacion: el.value }); });
   return out;
 }
 async function guardarUbicaciones() {
