@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v18.html (GitHub Pages) — espera Motor API v15. Recomendaciones como botones desplegables. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v20.html (GitHub Pages) — espera Motor API v17. Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -89,6 +89,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;b
 .recbtn.mas .n{color:var(--danger)}.recbtn.menos .n{color:var(--warn)}.recbtn.no .n{color:#6b7280}.recbtn.top .n{color:var(--ok)}
 .recbtn.on{border-color:var(--brand);background:linear-gradient(160deg,#fff,#eef4fb)}
 .recpanel{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+tr.imp-exist{background:#fff5f5}tr.imp-exist input[readonly],tr.imp-exist select[disabled]{background:#f3f4f6;color:#6b7280;border-color:#eee}
+.badge.exist{background:#fee2e2;color:#991b1b}.pricechg{color:var(--danger);font-weight:700}
 #login{position:fixed;inset:0;background:radial-gradient(600px 400px at 15% 10%,#ffffff 0%,rgba(255,255,255,0) 60%),radial-gradient(700px 500px at 90% 90%,#cfe3fa 0%,rgba(207,227,250,0) 60%) #e9f1fb;z-index:65;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
 #login .box{background:rgba(255,255,255,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.9);border-radius:22px;padding:22px 18px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(54,94,130,.22)}
 #login h2{margin:0 0 2px;color:var(--brand);font-size:18px;text-align:center}#login .sub{color:var(--muted);font-size:13px;margin-bottom:10px;text-align:center}
@@ -209,7 +211,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 15;
+const EXPECTED_API = 17;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -1032,26 +1034,29 @@ async function aFactura() {
     <div class="file" onclick="document.getElementById('fxFile').click()"><div id="fxFileTxt">📎 Toca para elegir PDF o foto</div><input id="fxFile" type="file" accept="application/pdf,image/*" onchange="previewFile(this,null,'fxFileTxt')"></div>
     <div class="row" style="margin-top:12px"><button onclick="subirFactura()">Analizar factura</button><button class="sec" onclick="pegarTexto()">Pegar texto / lista</button></div></div>
     <div id="fxResult"></div>
-    <div class="card"><h3>Facturas subidas</h3>${facts.length ? `<div class="tbl"><table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Estado</th><th>Items</th><th></th></tr></thead><tbody>${facts.map(f => `<tr><td class="small">${esc(f.fecha)}</td><td>${esc(f.proveedor)}<div class="small muted">${esc(f.id)}</div></td><td><span class="badge ${f.estado === 'procesada' ? 'aprobada' : 'pendiente'}">${esc(f.estado)}</span></td><td>${f.items_importados}</td><td><a href="${esc(f.archivo_url)}" target="_blank">PDF</a>${f.ocr_doc_url ? ` · <a href="${esc(f.ocr_doc_url)}" target="_blank">texto</a>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Ninguna todavía.</div>'}</div>`;
+    <div class="card"><h3>Facturas subidas</h3>${facts.length ? `<div class="tbl"><table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Estado</th><th>Items</th><th></th></tr></thead><tbody>${facts.map(f => `<tr><td class="small">${esc(f.fecha)}</td><td>${esc(f.proveedor)}<div class="small"><b>${esc(f.numero || '')}</b></div><div class="small muted">${esc(f.id)}</div></td><td><span class="badge ${f.estado === 'procesada' ? 'aprobada' : 'pendiente'}">${esc(f.estado)}</span></td><td>${f.items_importados}</td><td><a href="${esc(f.archivo_url)}" target="_blank">PDF</a>${f.ocr_doc_url ? ` · <a href="${esc(f.ocr_doc_url)}" target="_blank">texto</a>` : ''}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Ninguna todavía.</div>'}</div>`;
 }
 async function subirFactura() {
   const payload = $('fxFile')._payload; if (!payload) return toast('Elige el archivo de la factura', 'err');
   const esPdf = /pdf/i.test(payload.mime) || /\.pdf$/i.test(payload.name || '');
   try {
-    let items = null, texto = '';
+    let items = null, texto = '', meta = {};
     if (esPdf && typeof pdfjsLib !== 'undefined') {
       loading(true, 'Leyendo la tabla de productos del PDF…');
-      try { const r = await extraerItemsPDF(payload); items = r.items; texto = r.texto; } catch (e) { console.warn('pdf.js', e); items = null; }
+      try { const r = await extraerItemsPDF(payload); items = r.items; texto = r.texto; meta = r.meta || {}; } catch (e) { console.warn('pdf.js', e); items = null; }
       loading(false);
     }
     const leidoLocal = !!(items && items.length);
     if (esPdf && !leidoLocal) toast('No pude ubicar la tabla de productos en el PDF; intento con OCR. Revisa bien la tabla antes de importar.', 'err');
+    if (!$('fxProv').value.trim() && meta.razon) $('fxProv').value = meta.razon;
+    meta.totalItems = leidoLocal ? items.length : '';
     loading(true, leidoLocal ? 'Guardando el PDF en Drive…' : 'Subiendo y leyendo la factura con OCR… (20-40 s)');
-    const r = await gs('apiAdminSubirFactura', payload, $('fxProv').value, leidoLocal);
+    const r = await gs('apiAdminSubirFactura', payload, $('fxProv').value, leidoLocal, meta);
     loading(false);
-    S.admin.facturaId = r.facturaId;
+    S.admin.facturaId = r.facturaId; S.admin.facturaNumero = r.numero || meta.numero || '';
     if (!leidoLocal) { items = r.items; texto = r.texto; if (r.aviso) toast(r.aviso, 'err'); }
     if (!items.length) toast('No encontré la tabla de productos. Revisa el texto leído o usa "Pegar texto".', 'err');
+    if (meta.extras && meta.extras.length) toast('ℹ️ Se omitió ' + meta.extras.map(e => e.descripcion + ' ' + money(e.total)).join(', ') + ' (no es producto)', 'ok');
     renderImport(items, texto, r.facturaId);
   } catch (e) { loading(false); toast(e.message, 'err'); }
 }
@@ -1066,17 +1071,30 @@ async function extraerItemsPDF(payload) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const bytes = Uint8Array.from(atob(payload.data), c => c.charCodeAt(0));
   const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-  const KEYS = [['codigo', /principal/i], ['aux', /auxiliar/i], ['cantidad', /^cantidad|^cant\.?$/i], ['descripcion', /descripci/i], ['detalle', /detalle/i],
-    ['pu', /unitario|p\.?\s*unit/i], ['subsidio', /^subsidio$/i], ['psin', /precio\s+sin/i], ['descuento', /descuento|dcto/i], ['total', /precio\s+total|^total$|^p\.?\s*total/i]];
+  // Títulos reconocidos (RIDE SRI clásico y variantes tipo Tipti: Código · Descripción · Cant. · P. Unit. · Desc. · Total)
+  const KEYS = [['codigo', /principal|^c[oó]d(igo|\.)?(\s*(principal|producto|item))?$/i], ['aux', /auxiliar/i], ['cantidad', /^cantidad|^cant\.?$/i], ['descripcion', /descripci/i], ['detalle', /detalle/i],
+    ['pu', /unitario|p\.?\s*unit/i], ['subsidio', /^subsidio$/i], ['psin', /precio\s+sin/i], ['descuento', /descuento|dcto|^desc\.?$/i], ['total', /precio\s+total|^total$|^p\.?\s*total|^v\.?\s*total/i]];
   const toN = x => { let t = String(x).replace(/[^\d,.\-]/g, ''); if (!t) return null; if (t.indexOf(',') >= 0 && t.indexOf('.') >= 0) t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, ''); else t = t.replace(',', '.'); const n = parseFloat(t); return isNaN(n) ? null : n; };
   const items = [], textoLineas = [];
   let cols = null, terminado = false;
+  const meta = { numero: '', ruc: '', razon: '' };
 
   for (let pg = 1; pg <= pdf.numPages && !terminado; pg++) {
     const page = await pdf.getPage(pg); const tc = await page.getTextContent();
     const cells = tc.items.filter(it => it.str.trim()).map(it => ({ x: it.transform[4], y: it.transform[5], w: it.width || 0, h: it.height || 8, s: it.str.trim() }));
     cells.sort((a, b) => b.y - a.y || a.x - b.x);
     cells.forEach(c => textoLineas.push(c.s));
+    // --- datos de cabecera (solo primera página): número de factura = serie + secuencial, RUC y razón social del proveedor
+    if (pg === 1) {
+      const flat = cells.map(c => c.s).join(' ');
+      const derechaDe = re => { const i = cells.findIndex(c => re.test(c.s)); if (i < 0) return ''; const c = cells[i]; const d = cells.filter(z => Math.abs(z.y - c.y) < 4 && z.x > c.x).sort((a, b) => a.x - b.x)[0]; return d ? d.s : ''; };
+      let m = /\b(\d{3}-\d{3}-\d{9})\b/.exec(flat);
+      if (m) meta.numero = m[1];
+      else { const serie = derechaDe(/^serie$/i), sec = derechaDe(/^secuencial$/i); if (/^\d{3}-\d{3}$/.test(serie) && /^\d{9}$/.test(sec)) meta.numero = serie + '-' + sec; }
+      m = /R\.?U\.?C\.?:?\s*(\d{13})/i.exec(flat); if (m) meta.ruc = m[1];
+      const rz = derechaDe(/^raz[oó]n social:?$/i) || derechaDe(/^nombre comercial:?$/i);
+      if (rz) meta.razon = rz; else { const top = cells.filter(c => c.x < 120 && /[A-ZÁÉÍÓÚÑ]{3}/.test(c.s) && /^[A-ZÁÉÍÓÚÑ0-9][A-ZÁÉÍÓÚÑ0-9 .&\-]{3,}$/.test(c.s) && !/RIDE|FACTURA|RUC|AUTORIZ|CLAVE|AMBIENTE|EMISI|ECUADOR/i.test(c.s)).sort((a, b) => b.y - a.y)[0]; if (top) meta.razon = top.s; }
+    }
 
     // --- banda de títulos: la celda "Descripción" y todo título a ±14 pt de altura
     const dIdx = cells.findIndex(c => /descripci/i.test(c.s));
@@ -1116,20 +1134,27 @@ async function extraerItemsPDF(payload) {
     filas.forEach(f => {
       const cant = toN(f.a.s);
       const codigo = unir(f.celdas.codigo, true).replace(/\s+/g, '');
-      const descripcion = unir(f.celdas.descripcion).replace(/\s+/g, ' ');
+      const descripcion = unir(f.celdas.descripcion).replace(/\s+/g, ' ').replace(/^[iI]\s+(?=[A-Za-zÁÉÍÓÚÑ])/, ''); // Tipti antepone "i " a cada descripción
       const pu = toN(unir(f.celdas.pu, true)), total = toN(unir(f.celdas.total, true));
       if (!descripcion || !(cant > 0) || (pu === null && total === null)) return;
+      if (/^(shipping|envio|delivery|flete|servicio|service)/i.test(codigo) || /\b(costo de env[ií]o|env[ií]o|flete|delivery|recargo|servicio a domicilio)\b/i.test(descripcion)) {
+        meta.extras = meta.extras || []; meta.extras.push({ descripcion, total: total !== null ? total : pu }); return; // no es producto: gasto de la compra
+      }
       items.push({ codigo_proveedor: codigo, descripcion, cantidad: cant,
         costo_empaque: pu !== null ? pu : Math.round(total / cant * 10000) / 10000,
         costo_total: total !== null ? total : Math.round(pu * cant * 100) / 100,
         unid_por_empaque: detectarUnidadesJS(descripcion) });
     });
   }
-  return { items, texto: textoLineas.join('\n') };
+  return { items, texto: textoLineas.join('\n'), meta };
 }
+// Unidades por empaque a partir de la descripción. "6 X 330 ml" = 6 unidades de 330 ml (no 330); "x24", "12 und", "6pack", "funda 24".
 function detectarUnidadesJS(line) {
-  const m = /(?:\bx\s?(\d{1,3})\b)|(\d{1,3})\s?(?:pack|un(?:id(?:ades)?)?|u\b|pcs|pzas?|piezas?)|(?:paq(?:uete)?|caja|funda|display)\s?(?:de\s?)?(\d{1,3})/i.exec(String(line));
-  if (!m) return 1; const n = parseInt(m[1] || m[2] || m[3], 10); return n > 1 && n <= 500 ? n : 1;
+  const s = String(line);
+  let m = /(\d{1,3})\s?[xX×]\s?\d+(?:[.,]\d+)?\s?(ml|g|gr|kg|l|lt|oz|cc|cm3)\b/i.exec(s); // 6 X 330 ml / 6X135 Ml / 3 X 43 G
+  if (m) { const n = parseInt(m[1], 10); return n > 1 && n <= 500 ? n : 1; }
+  m = /(?:\b[xX×]\s?(\d{1,3})\b(?!\s?(ml|g|gr|kg|l|lt|oz|cc)\b))|(\d{1,3})\s?(?:pack|un(?:id(?:ades)?)?|u\b|pcs|pzas?|piezas?)|(?:paq(?:uete)?|caja|funda|display)\s?(?:de\s?)?(\d{1,3})/i.exec(s);
+  if (!m) return 1; const n = parseInt(m[1] || m[3] || m[4], 10); return n > 1 && n <= 500 ? n : 1;
 }
 function pegarTexto() {
   modal(`<h3>Pegar texto de la factura</h3><p class="small muted">Pega el texto de la factura, o una lista JSON de productos (si te la preparó Claude): <code>[{"nombre":"…","categoria":"…","tier":"25c","unid_por_empaque":12,"empaques_comprados":2,"costo_empaque":3.5}]</code></p>
@@ -1164,8 +1189,8 @@ async function renderImport(items, texto, facturaId) {
     });
     S.admin.impItems = nuevos;
   } catch (e) { /* sin match: se tratan como nuevos */ }
-  $('fxResult').innerHTML = `<div class="card"><h3>Revisar artículos ${facturaId ? '<span class="small muted">' + esc(facturaId) + '</span>' : ''}</h3>
-    <p class="small muted" style="margin-top:0">Corrige lo que haga falta. <b>Unid/emp</b> = cuántas unidades vienen en cada empaque comprado (funda, caja). <b>Emp.</b> = empaques comprados (Cantidad de la factura). Stock = Emp × Unid/emp. Las filas marcadas <span class="badge cruzada">existente</span> ya están en el catálogo (mismo Cod. Principal o nombre): conservan su SKU y solo suman stock y actualizan costo. Las nuevas reciben el siguiente SKU (${esc(S.admin.proximoSku || 'PMV-TIEN-…')}) al importar.</p>
+  $('fxResult').innerHTML = `<div class="card"><h3>Revisar artículos ${S.admin.facturaNumero ? '<span class="small" style="color:var(--brand)">Factura ' + esc(S.admin.facturaNumero) + '</span>' : ''} ${facturaId ? '<span class="small muted">' + esc(facturaId) + '</span>' : ''}</h3>
+    <p class="small muted" style="margin-top:0">Corrige lo que haga falta. <b>Unid/emp</b> = cuántas unidades vienen en cada empaque comprado (funda, caja). <b>Emp.</b> = empaques comprados (Cantidad de la factura). Stock = Emp × Unid/emp. Las filas <span class="badge exist">🔒 existente</span> ya están en el catálogo (mismo código del proveedor o nombre): quedan bloqueadas, conservan su SKU/categoría/precio de venta, la cantidad entra a <b>bodega</b> (la percha no se toca) y se te avisa en rojo si el costo cambió respecto a la última compra. Las nuevas reciben el siguiente SKU (${esc(S.admin.proximoSku || 'PMV-TIEN-…')}) al importar.</p>
     <div class="tbl"><table class="imp"><thead><tr><th>✓</th><th>Producto</th><th>Categoría</th><th>Precio venta</th><th>Unid/emp</th><th>Emp. (Cant.)</th><th>Costo emp. $</th><th>Costo u.</th></tr></thead><tbody id="impBody"></tbody></table></div>
     <div class="row" style="margin-top:10px"><button class="sec small" onclick="impAdd()">＋ Fila</button><span class="small muted" id="impSum"></span></div>
     <div class="row" style="margin-top:12px"><button onclick="importar('${esc(facturaId)}')">Importar al catálogo</button></div>
@@ -1191,17 +1216,20 @@ function expandirFila(it, destinos, recordado) {
   });
 }
 function renderImpRows() {
-  $('impBody').innerHTML = S.admin.impItems.map((it, i) => `<tr id="imp_tr_${i}" style="${it.incluir ? '' : 'opacity:.4'}">
+  $('impBody').innerHTML = S.admin.impItems.map((it, i) => { const ex = it.existente; const ro = ex ? 'readonly' : ''; const dis = ex ? 'disabled' : '';
+    const prevC = ex && ex.costo_empaque > 0 ? ex.costo_empaque : null; const chg = prevC !== null && Math.abs(it.costo_empaque - prevC) / prevC > 0.005;
+    return `<tr id="imp_tr_${i}" class="${ex ? 'imp-exist' : ''}" style="${it.incluir ? '' : 'opacity:.4'}">
     <td><input type="checkbox" style="width:auto" ${it.incluir ? 'checked' : ''} onchange="impSet(${i},'incluir',this.checked)"></td>
-    <td><input class="w" value="${esc(it.nombre)}" onchange="impSet(${i},'nombre',this.value)"><div class="row" style="margin-top:4px"><input value="${esc(it.sku)}" placeholder="SKU (auto)" style="min-width:110px" ${it.existente ? 'readonly' : ''} onchange="impSet(${i},'sku',this.value)"><input value="${esc(it.codigo_proveedor)}" placeholder="Cód. proveedor" style="min-width:110px" onchange="impSet(${i},'codigo_proveedor',this.value)"></div>
-      ${it.existente ? `<div class="small" style="margin-top:3px"><span class="badge cruzada">existente</span> stock actual ${it.existente.stock} · se sumarán ${it.unid_por_empaque * it.empaques_comprados} u.</div>` : '<div class="small muted" style="margin-top:3px">nuevo</div>'}
-      ${it.origen ? `<div class="small muted">↳ ${it.origen.tipo === 'desglose' ? 'desglose de' : 'se vende como; viene de'} "${esc(it.origen.nombre)}"${it.origen.recordado ? ' · equivalencia recordada' : ''}</div>` : `<div style="margin-top:3px"><button class="small sec" onclick="equivalencia(${i})">✂️ Vender como / Desglosar</button></div>`}</td>
-    <td><select onchange="impSet(${i},'categoria',this.value)">${S.categorias.map(c => `<option ${c === it.categoria ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></td>
-    <td><select onchange="impSet(${i},'tier',this.value)">${S.tiers.map(t => `<option value="${esc(t.key)}" ${t.key === it.tier ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select></td>
-    <td><input type="number" min="1" value="${it.unid_por_empaque}" onchange="impSet(${i},'unid_por_empaque',+this.value)"></td>
+    <td><input class="w" value="${esc(it.nombre)}" ${ro} onchange="impSet(${i},'nombre',this.value)"><div class="row" style="margin-top:4px"><input value="${esc(it.sku)}" placeholder="SKU (auto)" style="min-width:110px" ${ro} onchange="impSet(${i},'sku',this.value)"><input value="${esc(it.codigo_proveedor)}" placeholder="Cód. proveedor" style="min-width:110px" ${ro} onchange="impSet(${i},'codigo_proveedor',this.value)"></div>
+      ${ex ? `<div class="small" style="margin-top:3px"><span class="badge exist">🔒 existente</span> percha ${ex.stock_percha !== undefined ? ex.stock_percha : '?'} · bodega ${ex.stock_bodega !== undefined ? ex.stock_bodega : '?'} · total ${ex.stock} → entran <b>${it.unid_por_empaque * it.empaques_comprados} u. a bodega</b></div>
+        ${chg ? `<div class="small pricechg" id="imp_chg_${i}">⚠ Precio cambió: ${money(prevC)} → ${money(it.costo_empaque)} (${it.costo_empaque > prevC ? '+' : ''}${Math.round((it.costo_empaque - prevC) / prevC * 100)} %)</div>` : `<div class="small muted" id="imp_chg_${i}">mismo costo que la última compra (${money(prevC || 0)})</div>`}` : '<div class="small muted" style="margin-top:3px">nuevo</div>'}
+      ${it.origen ? `<div class="small muted">↳ ${it.origen.tipo === 'desglose' ? 'desglose de' : 'se vende como; viene de'} "${esc(it.origen.nombre)}"${it.origen.recordado ? ' · equivalencia recordada' : ''}</div>` : (ex ? '' : `<div style="margin-top:3px"><button class="small sec" onclick="equivalencia(${i})">✂️ Vender como / Desglosar</button></div>`)}</td>
+    <td><select ${dis} onchange="impSet(${i},'categoria',this.value)">${S.categorias.map(c => `<option ${c === it.categoria ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></td>
+    <td><select ${dis} onchange="impSet(${i},'tier',this.value)">${S.tiers.map(t => `<option value="${esc(t.key)}" ${t.key === it.tier ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select></td>
+    <td><input type="number" min="1" value="${it.unid_por_empaque}" ${ro} onchange="impSet(${i},'unid_por_empaque',+this.value)"></td>
     <td><input type="number" min="0" value="${it.empaques_comprados}" onchange="impSet(${i},'empaques_comprados',+this.value)"></td>
-    <td><input type="number" step="0.01" value="${it.costo_empaque}" onchange="impSet(${i},'costo_empaque',+this.value)"></td>
-    <td class="small b" id="imp_cu_${i}">${money(it.unid_por_empaque ? it.costo_empaque / it.unid_por_empaque : 0)}</td></tr>`).join('');
+    <td><input type="number" step="0.01" value="${it.costo_empaque}" style="${chg ? 'border-color:var(--danger)' : ''}" onchange="impSet(${i},'costo_empaque',+this.value)"></td>
+    <td class="small b" id="imp_cu_${i}">${money(it.unid_por_empaque ? it.costo_empaque / it.unid_por_empaque : 0)}</td></tr>`; }).join('');
   impResumen();
 }
 function impResumen() {
@@ -1247,6 +1275,7 @@ async function aplicarEquivalencia(i) {
 function impSet(i, k, v) {
   const it = S.admin.impItems[i]; it[k] = v;
   const cu = $('imp_cu_' + i); if (cu) cu.textContent = money(it.unid_por_empaque ? it.costo_empaque / it.unid_por_empaque : 0);
+  const ch = $('imp_chg_' + i); if (ch && it.existente && it.existente.costo_empaque > 0) { const p = it.existente.costo_empaque, d = (it.costo_empaque - p) / p; ch.className = 'small ' + (Math.abs(d) > 0.005 ? 'pricechg' : 'muted'); ch.textContent = Math.abs(d) > 0.005 ? '⚠ Precio cambió: ' + money(p) + ' → ' + money(it.costo_empaque) + ' (' + (d > 0 ? '+' : '') + Math.round(d * 100) + ' %)' : 'mismo costo que la última compra (' + money(p) + ')'; }
   const tr = $('imp_tr_' + i); if (tr) tr.style.opacity = it.incluir ? '' : '.4';
   impResumen();
 }
