@@ -214,7 +214,7 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 21;
+const EXPECTED_API = 22;
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -366,12 +366,29 @@ function showView(v) {
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   ['tienda', 'historial', 'recargar', 'admin'].forEach(x => $('v-' + x).classList.toggle('hide', x !== v));
   $('cartbar').classList.toggle('hide', v !== 'tienda' || cartCount() === 0);
+  if (v === 'tienda') refrescarTienda();
   if (v === 'historial') loadHistorial();
   if (v === 'recargar') loadMisRecargas();
   if (v === 'admin') adminShow(S.admin.sub || 'resumen');
 }
 
 /* ===================== TIENDA ===================== */
+// El catálogo de la tienda es una foto tomada al entrar: se vuelve a pedir al abrir la pestaña Tienda y después de
+// cualquier cambio de stock desde Admin (traslados, ingreso manual, edición de producto), para que percha/cuadrantes salgan al instante.
+// Además la tienda está EN VIVO: mientras la pestaña Tienda esté visible se vuelve a pedir el catálogo cada TIENDA_VIVO_MS
+// (compras de otros usuarios, traslados, ingresos) y también al volver a la app (cambio de pestaña del navegador / desbloquear el celular).
+const TIENDA_VIVO_MS = 20000;
+let _tiendaTs = 0, _tiendaBusy = false;
+async function refrescarTienda(force) {
+  if (_tiendaBusy) return;
+  if (!force && Date.now() - _tiendaTs < 5000) return;
+  _tiendaBusy = true;
+  try { const cat = await gs('apiCatalogo'); S.catalogo = cat; _tiendaTs = Date.now(); if (tiendaVisible()) { renderGrid(); renderCartBar(); } } catch (e) {} finally { _tiendaBusy = false; }
+}
+const tiendaVisible = () => S.user && $('v-tienda') && !$('v-tienda').classList.contains('hide') && document.visibilityState === 'visible';
+setInterval(() => { if (tiendaVisible() && !$('modal').innerHTML) refrescarTienda(true); }, TIENDA_VIVO_MS);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user) refrescarTienda(true); });
+window.addEventListener('focus', () => { if (S.user) refrescarTienda(); });
 $('q').addEventListener('input', e => { S.q = e.target.value.toLowerCase(); renderGrid(); });
 function renderChips() {
   const cats = ['Todas'].concat(S.categorias);
@@ -849,7 +866,7 @@ function ubicacionesCambiadas() {
 async function guardarUbicaciones() {
   const items = ubicacionesCambiadas();
   if (!items.length) return toast('No cambiaste ningún cuadrante', 'err');
-  try { const x = await call('apiAdminAplicarTraslados', items, 'ubicación en percha'); toast('📍 ' + x.ubicados + ' cuadrantes guardados', 'ok'); aRestock(); } catch (e) {}
+  try { const x = await call('apiAdminAplicarTraslados', items, 'ubicación en percha'); toast('📍 ' + x.ubicados + ' cuadrantes guardados', 'ok'); aRestock(); refrescarTienda(true); } catch (e) {}
 }
 async function aplicarRestock() {
   const r = S.admin.restock; const items = []; const sinUb = [];
@@ -862,7 +879,7 @@ async function aplicarRestock() {
   ubicacionesCambiadas().forEach(u => { if (!marcados[u.sku]) items.push(u); });
   const n = items.filter(i => i.unidades > 0).length;
   if (!confirm('¿Registrar ' + n + ' traslados de bodega a percha (con su cuadrante)? Hazlo cuando ya moviste físicamente los productos.')) return;
-  try { const x = await call('apiAdminAplicarTraslados', items, 'restock interno'); toast('✅ ' + x.traslados + ' traslados registrados · ' + x.ubicados + ' cuadrantes', 'ok'); aRestock(); } catch (e) {}
+  try { const x = await call('apiAdminAplicarTraslados', items, 'restock interno'); toast('✅ ' + x.traslados + ' traslados registrados · ' + x.ubicados + ' cuadrantes', 'ok'); aRestock(); refrescarTienda(true); } catch (e) {}
 }
 function imprimirLista(tipo) {
   const r = S.admin.restock; const hoy = new Date().toLocaleDateString();
@@ -966,7 +983,8 @@ function editProd(sku) {
     <div class="row"><div><label>Unidades por empaque</label><input id="peUE" type="number" min="1" value="${p.unid_por_empaque}"></div><div><label>Costo del empaque ($)</label><input id="peCE" type="number" step="0.01" value="${p.costo_empaque}"></div></div>
     ${sku ? `<div class="row"><div><label>Stock en percha (conteo)</label><input id="pePer" type="number" min="0" value="${p.stock_percha}"></div><div><label>Stock en bodega (conteo)</label><input id="peBod" type="number" min="0" value="${p.stock_bodega}"></div></div>
              <div class="small muted">Total actual ${p.stock}. Cambia estos solo si hiciste conteo físico.</div>`
-          : `<label>Empaques comprados (stock inicial = empaques × unidades)</label><input id="peEmp" type="number" min="0" value="0">`}
+          : `<div class="row"><div><label>Empaques comprados (stock inicial)</label><input id="peEmp" type="number" min="0" value="0"></div><div><label>… o unidades sueltas</label><input id="peUni" type="number" min="0" placeholder="ej. 7"></div></div>
+             <label>¿A dónde entra el stock inicial?</label><select id="peDest"><option value="bodega">Bodega (lo normal)</option><option value="percha">Directo a percha (ya está afuera)</option></select>`}
     <div class="row"><div><label>Objetivo en percha (u.)</label><input id="peObj" type="number" min="0" placeholder="auto (sacadas parejas)" value="${p.percha_objetivo === null || p.percha_objetivo === undefined ? '' : p.percha_objetivo}"></div>
       <div><label>Stock mínimo antes de recomprar (u.)</label><input id="peMin" type="number" min="0" placeholder="por defecto ${5}" value="${p.stock_minimo === null || p.stock_minimo === undefined ? '' : p.stock_minimo}"></div></div>
     <div class="row"><div><label>Código del proveedor (de la factura)</label><input id="peCP" value="${esc(p.codigo_proveedor || '')}"></div>
@@ -982,8 +1000,9 @@ async function saveProd(isEdit) {
   const p = { sku: $('peSku').value.trim(), nombre: $('peNom').value.trim(), categoria: $('peCat').value, tier: $('peTier').value,
     unid_por_empaque: +$('peUE').value, costo_empaque: +$('peCE').value, activo: $('peAct').value === '1', codigo_proveedor: $('peCP').value.trim() };
   p.percha_objetivo = $('peObj').value; p.stock_minimo = $('peMin').value; p.ubicacion = $('peUb').value;
-  if (isEdit) { p.stock_percha = $('pePer').value; p.stock_bodega = $('peBod').value; } else p.empaques_comprados = +$('peEmp').value;
-  try { await call('apiAdminGuardarProducto', p); closeModal(); toast('Producto guardado', 'ok'); aCatalogo(); } catch (e) {}
+  if (isEdit) { p.stock_percha = $('pePer').value; p.stock_bodega = $('peBod').value; }
+  else { p.empaques_comprados = +$('peEmp').value; p.unidades = +$('peUni').value || 0; p.destino = $('peDest').value; }
+  try { await call('apiAdminGuardarProducto', p); closeModal(); toast('Producto guardado', 'ok'); aCatalogo(); refrescarTienda(true); } catch (e) {}
 }
 /* --- Fotos --- */
 async function buscarFoto(sku) {
@@ -1049,14 +1068,21 @@ async function autoFotos(skus) {
 
 function ingresoStock(sku) {
   const p = S.admin.prods.find(x => x.sku === sku);
-  modal(`<h3>＋ Ingreso de stock</h3><p><b>${esc(p.nombre)}</b> · ${p.unid_por_empaque} unidades por empaque · stock ${p.stock}</p>
-    <label>Empaques comprados</label><input id="isEmp" type="number" min="1" value="1" oninput="$('isPrev').textContent='= '+(this.value*${p.unid_por_empaque})+' unidades'">
+  modal(`<h3>＋ Ingreso manual de stock</h3><p><b>${esc(p.nombre)}</b> · ${p.unid_por_empaque} u/empaque · percha ${p.stock_percha} · bodega ${p.stock_bodega}</p>
+    <div class="row"><div><label>Empaques</label><input id="isEmp" type="number" min="0" value="1" oninput="$('isUni').value='';$('isPrev').textContent='= '+(this.value*${p.unid_por_empaque})+' unidades'"></div>
+      <div><label>… o unidades sueltas</label><input id="isUni" type="number" min="0" placeholder="ej. 7" oninput="$('isEmp').value='';$('isPrev').textContent='= '+this.value+' unidades'"></div></div>
     <div class="small muted" id="isPrev">= ${p.unid_por_empaque} unidades</div>
+    <label>¿A dónde entra?</label><select id="isDest" onchange="$('isUbWrap').style.display=this.value==='percha'?'':'none'"><option value="bodega">Bodega (lo normal: el restock dice cuánto sacar)</option><option value="percha">Directo a percha (ya está afuera, ej. stock anterior)</option></select>
+    <div id="isUbWrap" style="display:none"><label>📍 Cuadrante en percha</label>${selUbic('isUb', p.ubicacion || '', S.admin.ubicaciones)}</div>
     <label>Costo por empaque ($) (opcional, actualiza costo)</label><input id="isCE" type="number" step="0.01" value="${p.costo_empaque}">
+    <label>Nota (opcional)</label><input id="isNota" placeholder="ej. stock anterior, conteo">
     <div class="row" style="margin-top:14px"><button class="sec" onclick="closeModal()">Cancelar</button><button onclick="doIngreso('${esc(sku)}')">Ingresar</button></div>`);
 }
 async function doIngreso(sku) {
-  try { const r = await call('apiAdminIngresoStock', sku, +$('isEmp').value, $('isCE').value, ''); closeModal(); toast('Stock actualizado: ' + r.stock, 'ok'); aCatalogo(); } catch (e) {}
+  const uni = +$('isUni').value || 0, emp = +$('isEmp').value || 0;
+  if (!uni && !emp) return toast('Pon empaques o unidades', 'err');
+  const opts = { unidades: uni, destino: $('isDest').value, ubicacion: $('isDest').value === 'percha' ? $('isUb').value : undefined, nota: $('isNota').value.trim() };
+  try { const r = await call('apiAdminIngresoStock', sku, emp, $('isCE').value, '', opts); closeModal(); toast('Stock actualizado: ' + r.stock + (opts.destino === 'percha' ? ' (a percha)' : ' (a bodega)'), 'ok'); aCatalogo(); refrescarTienda(true); } catch (e) {}
 }
 function editCats() {
   modal(`<h3>🏷️ Categorías</h3><p class="small muted">Una por línea. Los productos con categorías eliminadas conservan su texto.</p>
