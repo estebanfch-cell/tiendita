@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v34.html (GitHub Pages) — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v36.html (GitHub Pages) — carrito con ✕ por producto y Vaciar carrito. — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -41,7 +41,7 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .chip{flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600}
 .chip.on{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border-color:transparent}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.prod{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;grid-template-rows:auto 16px 54px 34px 26px 40px;row-gap:6px;align-items:start;box-shadow:0 1px 3px rgba(54,94,130,.06)}
+.prod{min-width:0;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px;display:grid;grid-template-rows:auto 16px 54px 34px 26px 40px;row-gap:6px;align-items:start;box-shadow:0 1px 3px rgba(54,94,130,.06)}
 .prod .imgbox{width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:linear-gradient(160deg,#f6f9fe,#e9f1fb)}
 .prod .imgbox .img,.prod .imgbox .noimg{width:100%;height:100%;aspect-ratio:auto;border-radius:0}
 /* filas fijas para que todas las tarjetas cuadren: foto · categoría · nombre (3 líneas) · precio · stock+cuadrante · botones */
@@ -49,10 +49,10 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .prod .cat{height:16px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prod .pr{height:34px;line-height:17px;overflow:hidden;display:flex;align-items:flex-start;flex-wrap:wrap;gap:0 4px}
 /* fila de stock: dos burbujas en la misma línea — 'Quedan N' a la izquierda y el cuadrante 📍 a la derecha, completas, sin recorte */
-.prod .stk{height:26px;display:flex;align-items:center;justify-content:space-between;gap:6px;white-space:nowrap;overflow:visible;font-size:12px}
-.prod .stk .pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-weight:700;font-size:12px;line-height:1;background:#eef3fa;color:var(--brand);flex:0 0 auto}
+.prod .stk{height:26px;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:4px;white-space:nowrap;overflow:hidden;font-size:11px}
+.prod .stk .pill{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:999px;font-weight:700;font-size:11px;line-height:1;background:#eef3fa;color:var(--brand);flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .prod .stk .pill.low{background:#fff3e0;color:#b45309}.prod .stk .pill.out{background:#fee2e2;color:#991b1b}
-.prod .stk .ubic{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font-size:12px;line-height:1;margin-left:auto;flex:0 0 auto;box-shadow:0 1px 2px rgba(54,94,130,.25)}
+.prod .stk .ubic{display:inline-block;height:24px;line-height:24px;padding:0 8px;border-radius:999px;font-size:11px;margin-left:auto;flex:0 1 auto;min-width:0;max-width:60%;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 2px rgba(54,94,130,.25)}
 .prod .qty{align-self:end}
 .prod .img{width:100%;aspect-ratio:1/1;object-fit:contain;border-radius:12px;background:linear-gradient(160deg,#f6f9fe,#e9f1fb);display:block}.prod .noimg{width:100%;aspect-ratio:1/1;border-radius:12px;background:linear-gradient(160deg,#f6f9fe,#e9f1fb);display:flex;align-items:center;justify-content:center;font-size:34px}
 .thumb-sm{width:44px;height:44px;object-fit:contain;border-radius:8px;background:#f3f4f6}
@@ -72,7 +72,8 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .sheet .box{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 24px}
 .sheet .box h3{margin:0 0 8px}
 .line{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
-.line .nm{flex:1;font-weight:600}.line .sub{font-weight:700;white-space:nowrap}
+.line .nm{flex:1;font-weight:600;min-width:0}.line .sub{font-weight:700;white-space:nowrap}
+.line .del{flex:0 0 30px;width:30px;height:30px;padding:0;border-radius:50%;background:#fee2e2;color:#991b1b;font-weight:800;font-size:15px;line-height:30px;text-align:center}
 .total{display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:12px 0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:130px;background:#2b4d6e;color:#fff;padding:10px 16px;border-radius:12px;z-index:60;font-weight:600;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .toast.err{background:var(--danger)}.toast.ok{background:var(--ok)}
@@ -235,7 +236,7 @@ a{color:var(--brand)}
 <script>
 /* ===================== CORE ===================== */
 const EXPECTED_API = 24;
-const APP_VERSION = 34; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
+const APP_VERSION = 36; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -413,7 +414,9 @@ async function refrescarTienda(force) {
 // Actualiza SOLO lo que cambió (stock, cuadrante, botones) sin reconstruir las tarjetas ni recargar fotos → sin parpadeo.
 // Si entra o sale un producto (o cambia nombre/precio/foto), ahí sí se redibuja la cuadrícula completa.
 function patchGrid() { renderGrid(); }
-const stkHtml = (p, out) => `<span class="pill ${out ? 'out' : p.stock <= 5 ? 'low' : ''}">${out ? 'Agotado' : 'Quedan ' + p.stock}</span>${p.ubicacion ? `<span class="ubic" title="Cuadrante en la percha">📍 ${esc(p.ubicacion)}</span>` : ''}`;
+// Ubicaciones con nombre largo (Refrigeradora, Congeladora) se abrevian para que la burbuja quepa igual que un cuadrante: "Refrig." / "Congel."
+const ubicCorta = u => u.length > 5 ? u.slice(0, 6) + '.' : u;
+const stkHtml = (p, out) => `<span class="pill ${out ? 'out' : p.stock <= 5 ? 'low' : ''}">${out ? 'Agotado' : 'Quedan ' + p.stock}</span>${p.ubicacion ? `<span class="ubic" title="${esc(p.ubicacion)}">📍 ${esc(ubicCorta(p.ubicacion))}</span>` : ''}`;
 const tiendaVisible = () => S.user && $('v-tienda') && !$('v-tienda').classList.contains('hide') && document.visibilityState === 'visible';
 setInterval(() => { if (tiendaVisible() && !$('modal').innerHTML) refrescarTienda(true); }, TIENDA_VIVO_MS);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user) refrescarTienda(true); });
@@ -506,13 +509,16 @@ function openCart() {
   modal(`<h3>🛒 Tu carrito</h3>
     ${lines.map(l => `<div class="line"><div class="nm">${esc(l.p.nombre)}<div class="small muted">${esc(tierLabel(l.p.tier))}${l.p.ubicacion ? ` · <span class="ubic">📍 ${esc(l.p.ubicacion)}</span>` : ''}</div></div>
       <div class="qty"><button onclick="addCart('${esc(l.p.sku)}',-1);openCart()">−</button><span>${l.q}</span><button class="add" onclick="addCart('${esc(l.p.sku)}',1);openCart()" ${l.q + l.p.step > l.p.stock ? 'disabled' : ''}>+</button></div>
-      <div class="sub">${money(l.p.precio_unit * l.q)}</div></div>`).join('') || '<div class="empty">Carrito vacío</div>'}
+      <div class="sub">${money(l.p.precio_unit * l.q)}</div><button class="del" title="Quitar del carrito" onclick="quitarCart('${esc(l.p.sku)}')">✕</button></div>`).join('') || '<div class="empty">Carrito vacío</div>'}
+    ${lines.length ? `<div class="row" style="justify-content:flex-end;margin-top:6px"><button class="small sec" style="flex:0 0 auto" onclick="vaciarCart()">🗑️ Vaciar carrito</button></div>` : ''}
     <div class="total"><span>Total</span><span>${money(total)}</span></div>
     <div class="row"><span class="muted">Tu saldo</span><span class="right b">${money(S.user.saldo)}</span></div>
     ${falta > 0.001 ? `<p style="color:var(--danger);font-weight:700">Te faltan ${money(falta)}. <a href="#" onclick="closeModal();showView('recargar');return false">Recargar saldo</a></p>` : ''}
     <div class="row" style="margin-top:12px"><button class="sec" onclick="closeModal()">Seguir comprando</button>
     <button onclick="comprar()" ${lines.length === 0 || falta > 0.001 ? 'disabled' : ''}>Confirmar compra</button></div>`);
 }
+function quitarCart(sku) { cartLoad(); delete S.cart[sku]; cartSave(); renderGrid(); renderCartBar(); if (cartCount() === 0) { closeModal(); toast('Carrito vacío', 'ok'); } else openCart(); }
+function vaciarCart() { if (!confirm('¿Vaciar el carrito?')) return; S.cart = {}; cartSave(); renderGrid(); renderCartBar(); closeModal(); toast('Carrito vaciado', 'ok'); }
 async function comprar() {
   cartLoad();
   const items = Object.keys(S.cart).map(sku => ({ sku, cantidad: S.cart[sku] }));
