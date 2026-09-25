@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v36.html (GitHub Pages) — carrito con ✕ por producto y Vaciar carrito. — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v38.html (GitHub Pages) — avisos en la app (💸 recibiste…) con ✕ — — transferencias de saldo entre usuarios (💸), espera Motor API v25 — — carrito con ✕ por producto y Vaciar carrito. — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -75,6 +75,10 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .line .nm{flex:1;font-weight:600;min-width:0}.line .sub{font-weight:700;white-space:nowrap}
 .line .del{flex:0 0 30px;width:30px;height:30px;padding:0;border-radius:50%;background:#fee2e2;color:#991b1b;font-weight:800;font-size:15px;line-height:30px;text-align:center}
 .total{display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:12px 0}
+/* avisos: burbujas arriba del contenido, se cierran con ✕ (quedan marcadas como vistas en el servidor) */
+.aviso{display:flex;align-items:flex-start;gap:10px;background:linear-gradient(135deg,#e6f4ea,#f0faf3);border:1px solid #b7e1c3;border-left:5px solid var(--ok);border-radius:14px;padding:10px 12px;margin:0 0 10px;box-shadow:0 2px 8px rgba(54,94,130,.10);animation:avin .25s ease}
+.aviso .t{font-weight:800;font-size:15px}.aviso .x{flex:0 0 32px;width:32px;height:32px;padding:0;border-radius:50%;background:#fff;color:#6b7280;font-weight:800;font-size:16px;line-height:32px;text-align:center;border:1px solid var(--line)}
+@keyframes avin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:130px;background:#2b4d6e;color:#fff;padding:10px 16px;border-radius:12px;z-index:60;font-weight:600;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .toast.err{background:var(--danger)}.toast.ok{background:var(--ok)}
 #loading{position:fixed;inset:0;background:rgba(237,243,251,.85);backdrop-filter:blur(6px);z-index:70;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;font-weight:700;color:var(--brand)}
@@ -90,6 +94,9 @@ nav.tabs button .ic{font-size:20px}nav.tabs button.on{color:var(--brand)}
 .compra-items li::before{content:'•';color:var(--brand);font-weight:800;margin-right:2px}.compra-items{list-style:none;padding-left:4px}
 .compra-items .q{font-weight:800;color:var(--brand)}.compra-items .sub{margin-left:auto;color:var(--muted);font-size:12px}
 .diarow td{background:#eef4fb;font-weight:800;font-size:12px;color:var(--brand)}
+.trlista{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:6px}.trlista .tropt{padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer}.trlista .tropt:last-child{border-bottom:0}.trlista .tropt:hover,.trlista .tropt.on{background:#eef4fb}
+.trsel{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#eef4fb;border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin-top:6px}
+.trconf{text-align:center;padding:14px;background:#f4f8fd;border-radius:14px;margin:8px 0}.trconf .v{font-size:34px;font-weight:800;color:var(--brand)}
 .mov .m{font-weight:800;white-space:nowrap}.mov .m.neg{color:var(--danger)}.mov .m.pos{color:var(--ok)}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}th{font-size:11px;color:var(--muted);text-transform:uppercase}
 .tbl{overflow-x:auto}
@@ -154,6 +161,7 @@ a{color:var(--brand)}
 </header>
 
 <main>
+  <div id="avisos"></div>
   <!-- TIENDA -->
   <section id="v-tienda">
     <input id="q" placeholder="🔍 Buscar producto…" autocomplete="off">
@@ -166,7 +174,8 @@ a{color:var(--brand)}
   <!-- HISTORIAL -->
   <section id="v-historial" class="hide">
     <div class="card"><h3>Mi saldo</h3><div style="font-size:30px;font-weight:800;color:var(--brand)" id="hisSaldo">$0.00</div>
-      <div class="small muted">Saldo = recargas aprobadas − compras ± ajustes</div></div>
+      <div class="small muted">Saldo = recargas aprobadas − compras ± transferencias ± ajustes</div>
+      <div class="row" style="margin-top:10px"><button class="sec" onclick="showView('recargar')">💵 Recargar</button><button class="sec" onclick="abrirTransferir()">💸 Enviar saldo</button></div></div>
     <div class="card"><h3>🧾 Mis compras</h3><div id="hisCompras"></div></div>
     <div class="card"><h3>💵 Mis recargas</h3><div id="hisRecargas"></div></div>
     <div class="card"><h3>📒 Movimientos</h3><div id="hisMovs"></div></div>
@@ -174,6 +183,11 @@ a{color:var(--brand)}
 
   <!-- RECARGAR -->
   <section id="v-recargar" class="hide">
+    <div class="card" id="trCard">
+      <h3>💸 Transferir saldo a otro usuario</h3>
+      <p class="small muted" style="margin-top:0">Envía parte de tu saldo a un compañero registrado en la app. Se descuenta de tu cuenta y se suma a la suya al instante, en múltiplos de $0.25. Nunca puedes quedar en negativo.</p>
+      <button class="sec" onclick="abrirTransferir()">💸 Enviar saldo</button>
+    </div>
     <div class="card">
       <h3>💵 Recargar saldo</h3>
       <p class="small muted" style="margin-top:0">Transfiere o deposita el dinero y sube la foto del comprobante (la fecha y hora se registran automáticamente). <b>Tu saldo se acredita al instante</b>; luego el administrador lo cruza con el estado de cuenta del banco. Si el pago no aparece en el banco, la recarga se reversa.</p>
@@ -235,8 +249,8 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 24;
-const APP_VERSION = 36; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
+const EXPECTED_API = 26;
+const APP_VERSION = 38; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -363,7 +377,8 @@ async function boot() {
       return showLogin('');
     }
     const b = await gs('apiBootstrap');
-    S.user = b.user; S.catalogo = b.catalogo; S.categorias = b.categorias; S.tiers = b.tiers; S.recMin = b.recargaMin; S.recMax = b.recargaMax;
+    S.user = b.user; S.catalogo = b.catalogo; S.categorias = b.categorias; S.tiers = b.tiers; S.recMin = b.recargaMin; S.recMax = b.recargaMax; S.transfer = b.transferencias !== false; S.transferPaso = b.transferPaso || 0.25; renderAvisos(b.avisos || []);
+    if ($('trCard')) $('trCard').classList.toggle('hide', !S.transfer);
     $('hLogo').textContent = b.nombreTienda;
     $('hWho').textContent = ((b.user.nombre || '') + ' ' + (b.user.apellido || '')).trim() || b.user.email;
     if (b.user.esAdmin) $('hWho').textContent += ' · admin';
@@ -406,8 +421,10 @@ async function refrescarTienda(force) {
   if (!force && Date.now() - _tiendaTs < 5000) return;
   _tiendaBusy = true;
   try {
-    const cat = await gs('apiCatalogo'); _tiendaTs = Date.now();
-    const antes = S.catalogo; S.catalogo = cat;
+    const v = await gs('apiTiendaVivo'); _tiendaTs = Date.now(); // gs (silencioso), nunca call: no debe salir 'Procesando…' cada 20 s
+    S.catalogo = v.catalogo;
+    if (S.user && v.saldo !== undefined && Math.abs(v.saldo - S.user.saldo) > 0.001) setSaldo(v.saldo); // ej. te transfirieron saldo
+    renderAvisos(v.avisos || []);
     if (tiendaVisible()) { patchGrid(); renderCartBar(); }
   } catch (e) {} finally { _tiendaBusy = false; }
 }
@@ -418,7 +435,7 @@ function patchGrid() { renderGrid(); }
 const ubicCorta = u => u.length > 5 ? u.slice(0, 6) + '.' : u;
 const stkHtml = (p, out) => `<span class="pill ${out ? 'out' : p.stock <= 5 ? 'low' : ''}">${out ? 'Agotado' : 'Quedan ' + p.stock}</span>${p.ubicacion ? `<span class="ubic" title="${esc(p.ubicacion)}">📍 ${esc(ubicCorta(p.ubicacion))}</span>` : ''}`;
 const tiendaVisible = () => S.user && $('v-tienda') && !$('v-tienda').classList.contains('hide') && document.visibilityState === 'visible';
-setInterval(() => { if (tiendaVisible() && !$('modal').innerHTML) refrescarTienda(true); }, TIENDA_VIVO_MS);
+setInterval(() => { if (S.user && document.visibilityState === 'visible' && !$('modal').innerHTML) refrescarTienda(true); }, TIENDA_VIVO_MS);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user) refrescarTienda(true); });
 window.addEventListener('focus', () => { if (S.user) refrescarTienda(); });
 $('q').addEventListener('input', e => { S.q = e.target.value.toLowerCase(); renderGrid(); });
@@ -560,6 +577,86 @@ async function loadHistorial() {
       ${r.nota_admin ? `<div class="small muted">${esc(r.nota_admin)}</div>` : ''}</div><div class="m ${r.estado === 'rechazada' ? '' : 'pos'}">${money(r.monto)}</div></div>`).join('') : '<div class="empty">Sin recargas.</div>';
     $('hisMovs').innerHTML = h.movimientos.length ? h.movimientos.map(m => `<div class="mov"><div><div>${esc(m.detalle || m.tipo)}</div><div class="small muted">${esc(m.fecha)} · saldo ${money(m.saldo_despues)}</div></div>
       <div class="m ${m.monto < 0 ? 'neg' : 'pos'}">${m.monto < 0 ? '−' : '+'}${money(Math.abs(m.monto))}</div></div>`).join('') : '<div class="empty">Sin movimientos.</div>';
+  } catch (e) {}
+}
+
+/* ===================== AVISOS ===================== */
+// Avisos pendientes del usuario (ej. "💸 Recibiste $1.25 de Ana"). Se muestran arriba en cualquier pestaña hasta que el usuario toca ✕.
+let _avisosVistos = {};
+function renderAvisos(lista) {
+  const box = $('avisos'); if (!box) return;
+  const pend = (lista || []).filter(a => !_avisosVistos[a.id]);
+  const firma = pend.map(a => a.id).join(',');
+  if (box.dataset.firma === firma) return; box.dataset.firma = firma;
+  box.innerHTML = pend.map(a => `<div class="aviso" id="av_${esc(a.id)}"><div style="flex:1;min-width:0"><div class="t">${esc(a.titulo)}</div><div class="small">${esc(a.texto)}</div><div class="small muted">${esc(a.fecha)}</div></div><button class="x" title="Cerrar" onclick="cerrarAviso('${esc(a.id)}')">✕</button></div>`).join('');
+}
+async function cerrarAviso(id) {
+  _avisosVistos[id] = 1; const el = $('av_' + id); if (el) el.remove();
+  try { await gs('apiAvisoVisto', id); } catch (e) {}
+}
+
+/* ===================== TRANSFERIR SALDO ===================== */
+// Flujo: elegir destinatario (lista con buscador por nombre o correo) → monto (múltiplos de $0.25, chips rápidos) → confirmación → apiTransferir.
+let TR = { users: [], dest: null };
+async function abrirTransferir() {
+  if (S.transfer === false) return toast('Las transferencias están desactivadas', 'err');
+  try { TR.users = await call('apiUsuariosDestino'); } catch (e) { return; }
+  TR.dest = null;
+  const paso = S.transferPaso || 0.25;
+  modal(`<h3>💸 Enviar saldo</h3>
+    <div class="row"><span class="muted">Tu saldo disponible</span><span class="right b" id="trSaldo">${money(S.user.saldo)}</span></div>
+    <label>¿A quién? <span class="small muted">(busca por nombre o correo)</span></label>
+    <input id="trQ" placeholder="Escribe un nombre o correo…" autocomplete="off" oninput="trFiltrar()">
+    <div id="trLista" class="trlista"></div>
+    <div id="trSel" class="trsel hide"></div>
+    <label>Monto ($) <span class="small muted">múltiplos de ${money(paso)}</span></label>
+    <input id="trMonto" type="number" inputmode="decimal" step="${paso}" min="${paso}" placeholder="Ej: 1.00" oninput="trValidar()">
+    <div class="chips" style="margin-top:6px">${[0.25, 0.5, 1, 2, 5].map(v => `<button class="chip" onclick="$('trMonto').value='${v.toFixed(2)}';trValidar()">${money(v)}</button>`).join('')}</div>
+    <label>Nota (opcional)</label><input id="trNota" maxlength="120" placeholder="Ej: te devuelvo lo del almuerzo">
+    <div id="trMsg" class="small" style="min-height:18px;margin-top:6px"></div>
+    <div class="row" style="margin-top:12px"><button class="sec" onclick="closeModal()">Cancelar</button><button id="trBtn" onclick="confirmarTransferir()" disabled>Continuar</button></div>`);
+  trFiltrar();
+}
+function trFiltrar() {
+  const q = ($('trQ').value || '').toLowerCase().trim();
+  const lista = TR.users.filter(u => !q || u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)).slice(0, 8);
+  $('trLista').innerHTML = lista.length ? lista.map(u => `<div class="tropt ${TR.dest && TR.dest.email === u.email ? 'on' : ''}" onclick="trElegir('${esc(u.email)}')"><div class="b">${esc(u.nombre || u.email)}</div><div class="small muted">${esc(u.email)}</div></div>`).join('')
+    : '<div class="empty small">Nadie coincide con esa búsqueda.</div>';
+  $('trLista').classList.toggle('hide', !!TR.dest && !q);
+}
+function trElegir(email) {
+  TR.dest = TR.users.find(u => u.email === email) || null;
+  $('trQ').value = '';
+  $('trSel').classList.toggle('hide', !TR.dest);
+  if (TR.dest) $('trSel').innerHTML = `<div><div class="b">👤 ${esc(TR.dest.nombre || TR.dest.email)}</div><div class="small muted">${esc(TR.dest.email)}</div></div><button class="small sec" style="flex:0 0 auto" onclick="TR.dest=null;$('trSel').classList.add('hide');trFiltrar();trValidar()">Cambiar</button>`;
+  trFiltrar(); trValidar();
+}
+function trValidar() {
+  const paso = S.transferPaso || 0.25, m = parseFloat($('trMonto').value), msg = $('trMsg'); let err = '';
+  if (!TR.dest) err = 'Elige a quién enviar.';
+  else if (!(m > 0)) err = 'Escribe el monto.';
+  else if (Math.abs(Math.round(m / paso) * paso - m) > 0.001) err = 'El monto debe ser múltiplo de ' + money(paso) + '.';
+  else if (m > S.user.saldo + 0.001) err = 'No te alcanza: tu saldo es ' + money(S.user.saldo) + '.';
+  msg.textContent = err || ('Enviarás ' + money(m) + ' a ' + (TR.dest.nombre || TR.dest.email) + '. Te quedarán ' + money(S.user.saldo - m) + '.');
+  msg.style.color = err ? 'var(--danger)' : 'var(--ok)';
+  $('trBtn').disabled = !!err;
+}
+function confirmarTransferir() {
+  const m = parseFloat($('trMonto').value), nota = $('trNota').value.trim(); if (!TR.dest || !(m > 0)) return;
+  TR.pend = { email: TR.dest.email, nombre: TR.dest.nombre, monto: m, nota };
+  modal(`<h3>¿Confirmas la transferencia?</h3>
+    <div class="trconf"><div class="v">${money(m)}</div><div>para <b>${esc(TR.dest.nombre || TR.dest.email)}</b></div><div class="small muted">${esc(TR.dest.email)}</div>${nota ? `<div class="small" style="margin-top:6px">"${esc(nota)}"</div>` : ''}</div>
+    <p class="small muted">Se descuenta de tu saldo (${money(S.user.saldo)} → ${money(S.user.saldo - m)}) y se acredita al instante en su cuenta. <b>No se puede deshacer</b> desde la app.</p>
+    <div class="row" style="margin-top:12px"><button class="sec" onclick="abrirTransferir()">← Volver</button><button onclick="ejecutarTransferir()">Sí, enviar ${money(m)}</button></div>`);
+}
+async function ejecutarTransferir() {
+  const p = TR.pend; if (!p) return;
+  try {
+    const r = await call('apiTransferir', p.email, p.monto, p.nota);
+    setSaldo(r.saldo);
+    modal(`<h3>✅ Transferencia enviada</h3><div class="trconf"><div class="v">${money(r.monto)}</div><div>para <b>${esc(r.destino.nombre)}</b></div><div class="small muted">${esc(r.destino.email)} · ref ${esc(r.id)}</div></div>
+      <div class="row"><span class="muted">Tu nuevo saldo</span><span class="right b">${money(r.saldo)}</span></div>
+      <div class="row" style="margin-top:12px"><button onclick="closeModal();showView('historial')">Ver en mi historial</button></div>`);
   } catch (e) {}
 }
 
@@ -922,7 +1019,7 @@ async function descartarBanco(id) { if (!confirm('¿Descartar este movimiento? N
 
 /* --- Restock: interno (bodega → percha) y externo (recompra) --- */
 /* --- Movimientos: el mismo historial de la pestaña Movimientos del Sheet, para todos los usuarios --- */
-const MOV_LBL = { recarga: 'Recarga', compra: 'Compra', ajuste: 'Ajuste', reverso: 'Reverso', devolucion: 'Devolución' };
+const MOV_LBL = { recarga: 'Recarga', compra: 'Compra', ajuste: 'Ajuste', reverso: 'Reverso', devolucion: 'Devolución', transferencia_enviada: 'Transf. enviada', transferencia_recibida: 'Transf. recibida' };
 async function aMovs(dias, tipo, email) {
   if (dias === undefined) dias = S.admin.movDias === undefined ? 0 : S.admin.movDias; S.admin.movDias = dias;
   if (tipo === undefined) tipo = S.admin.movTipo || 'todos'; S.admin.movTipo = tipo;
@@ -936,7 +1033,7 @@ async function aMovs(dias, tipo, email) {
       const cab = m.dia !== dia ? `<tr class="diarow"><td colspan="6">${esc(m.dia)}</td></tr>` : ''; dia = m.dia;
       return cab + `<tr><td class="small muted" style="white-space:nowrap">${esc(m.fecha.slice(11) || m.fecha)}</td>
         <td><div class="b">${esc(m.nombre || m.email)}</div><div class="small muted">${esc(m.email)}</div></td>
-        <td><span class="badge ${m.tipo === 'compra' ? 'rechazada' : m.tipo === 'recarga' ? 'cruzada' : 'pendiente'}">${esc(MOV_LBL[m.tipo] || m.tipo)}</span></td>
+        <td><span class="badge ${m.tipo === 'compra' || m.tipo === 'transferencia_enviada' ? 'rechazada' : m.tipo === 'recarga' || m.tipo === 'transferencia_recibida' ? 'cruzada' : 'pendiente'}">${esc(MOV_LBL[m.tipo] || m.tipo)}</span></td>
         <td class="right b" style="color:${m.monto < 0 ? 'var(--danger)' : 'var(--ok)'}">${m.monto < 0 ? '−' : '+'}${money(Math.abs(m.monto))}</td>
         <td class="small">${esc(m.detalle || '')}${m.referencia ? `<div class="muted">${esc(m.referencia)}</div>` : ''}</td>
         <td class="right">${money(m.saldo_despues)}<div class="small muted">${esc(m.registrado_por || '')}</div></td></tr>`;
