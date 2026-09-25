@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v38.html (GitHub Pages) — avisos en la app (💸 recibiste…) con ✕ — — transferencias de saldo entre usuarios (💸), espera Motor API v25 — — carrito con ✕ por producto y Vaciar carrito. — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v39.html (GitHub Pages) — avisos en la app (💸 recibiste…) con ✕ — — transferencias de saldo entre usuarios (💸), espera Motor API v25 — — carrito con ✕ por producto y Vaciar carrito. — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -249,8 +249,8 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 26;
-const APP_VERSION = 38; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
+const EXPECTED_API = 27;
+const APP_VERSION = 39; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
