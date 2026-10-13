@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <title>LA TIENDITA</title>
-<!-- LA TIENDITA — Frontend index_v39.html (GitHub Pages) — avisos en la app (💸 recibiste…) con ✕ — — transferencias de saldo entre usuarios (💸), espera Motor API v25 — — carrito con ✕ por producto y Vaciar carrito. — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
+<!-- LA TIENDITA — Frontend index_v40.html (GitHub Pages) — rango 5 x $0.25 — — avisos en la app (💸 recibiste…) con ✕ — — transferencias de saldo entre usuarios (💸), espera Motor API v25 — — carrito con ✕ por producto y Vaciar carrito. — espera Motor API v24. Estado de cuenta en PDF (Deuna/Pichincha) leído con pdf.js. Admin → 🧾 Movimientos; compras del usuario como tarjetas con viñetas; reportes con nombres y total de saldos. Tarjetas persistentes (DOM fijo: orden con CSS order, filtro con display:none; la <img> nunca se mueve ni se recrea). Productos existentes bloqueados en la importación, alerta de cambio de precio. Lector de facturas Tipti (Código/Descripción/Cant./P. Unit.), número de factura serie+secuencial. Look & feel PMV Tiendita (logo + paleta azul glass). Pega la URL /exec de tu Apps Script en API_URL. -->
 <style>
 :root{--bg:#edf3fb;--card:#fff;--ink:#222629;--muted:#66758a;--line:#dbe6f3;--brand:#365e82;--brand2:#4f8fd0;--brand3:#def2fd;--danger:#dc2626;--ok:#1d9a5b;--warn:#d98a06;--r:16px}
 *{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -249,8 +249,8 @@ a{color:var(--brand)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 /* ===================== CORE ===================== */
-const EXPECTED_API = 27;
-const APP_VERSION = 39; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
+const EXPECTED_API = 28;
+const APP_VERSION = 40; // versión del frontend (se muestra en el chip para confirmar que GitHub sirve el archivo nuevo)
 // ⬇️ URL /exec de la implementación del Apps Script (Ejecutar como: Yo · Acceso: Cualquier persona)
 const API_URL = 'https://script.google.com/macros/s/AKfycbzQUAJMwVMqRIwAH3_5SKpqVbKhwEW-C--3Euow1uu-HLZE4n2OexiP8UQU6Ip9LhtK/exec';
 const S = { user:null, catalogo:[], categorias:[], tiers:[], cat:'Todas', tier:'Todos', q:'', cart:{}, recMin:1, recMax:100, admin:{} };
@@ -492,7 +492,7 @@ function updateCard(card, p) {
   } else if (!box.querySelector('.noimg') || box.dataset.err) { box.innerHTML = '<div class="noimg">' + emojiCat(p.categoria) + '</div>'; delete box.dataset.err; }
   setTxt(card.querySelector('.cat'), p.categoria);
   const nm = card.querySelector('.nm'); setTxt(nm, p.nombre); if (nm.title !== p.nombre) nm.title = p.nombre;
-  const pr = tierLabel(p.tier) + (p.step > 1 ? ' <span class="small muted">(en pares)</span>' : ''); const prEl = card.querySelector('.pr'); if (prEl.dataset.v !== pr) { prEl.innerHTML = pr; prEl.dataset.v = pr; }
+  const pr = tierLabel(p.tier) + (p.step > 1 ? ` <span class="small muted">(${p.step === 2 ? 'en pares' : 'de ' + p.step + ' en ' + p.step})</span>` : ''); const prEl = card.querySelector('.pr'); if (prEl.dataset.v !== pr) { prEl.innerHTML = pr; prEl.dataset.v = pr; }
   const stk = card.querySelector('.stk'); const sh = stkHtml(p, out); if (stk.dataset.v !== sh) { stk.innerHTML = sh; stk.dataset.v = sh; } stk.classList.toggle('low', p.stock <= 5);
   const btns = card.querySelectorAll('.qty button'); btns[0].disabled = q === 0; btns[1].disabled = out || q + p.step > p.stock;
   setTxt(card.querySelector('.qty span'), String(q));
@@ -1527,7 +1527,7 @@ async function renderImport(items, texto, facturaId) {
 function sugerirTier(costoEmp, unidEmp) {
   const cu = (+costoEmp || 0) / Math.max(1, +unidEmp || 1);
   if (!cu) return '25c';
-  return cu <= 0.09 ? '2x25c' : cu <= 0.2 ? '25c' : cu <= 0.42 ? '50c' : '1$';
+  return cu <= 0.035 ? '5x25c' : cu <= 0.09 ? '2x25c' : cu <= 0.2 ? '25c' : cu <= 0.42 ? '50c' : '1$';
 }
 // Convierte una fila de factura en 1..N filas de productos de venta (alias o desglose), prorrateando el costo por unidades
 function expandirFila(it, destinos, recordado) {
